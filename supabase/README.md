@@ -35,9 +35,19 @@ le boss attribue du stock → c'est enregistré en ligne → le commercial le vo
      commercial) et les rattachements. Je vous fournirai le petit script une fois
      les comptes créés (il suffit de coller les emails).
 
-5. **Me donner les 2 valeurs de l'étape 3**
-   - Je branche alors l'application dessus (connexion, lecture/écriture partagée,
-     synchro temps réel) et je teste avec vous.
+5. **Renseigner les 2 valeurs** dans [`demo/config.js`](../demo/config.js)
+   (ou envoyez-les moi, je le fais). Tant qu'elles sont vides, l'app reste en
+   mode démonstration local.
+
+6. **Vérifier la connexion** : ouvrez [`demo/serveur.html`](../demo/serveur.html).
+   - Non configuré → la page affiche les instructions.
+   - Configuré → écran de connexion (email + mot de passe) ; une fois connecté,
+     vous voyez l'entrepôt **en direct**, et un boss peut ajouter un produit de
+     test qui apparaît instantanément sur les autres appareils connectés.
+   C'est la preuve que comptes + base partagée + temps réel fonctionnent.
+
+7. **Ensuite** : je branche l'application complète (le formulaire d'attribution,
+   « Mon stock », les ventes…) sur ce serveur, et on teste ensemble.
 
 ## Ce que le serveur garantit déjà (dans `schema.sql`)
 
