@@ -1,0 +1,15 @@
+{
+  "name": "ZKA — Gestion de commerce",
+  "short_name": "ZKA",
+  "description": "Ventes, stock par produit, équipe et messagerie.",
+  "lang": "fr",
+  "start_url": "./zka-demo.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0B12",
+  "theme_color": "#5A4BE0",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
