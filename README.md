@@ -4,6 +4,8 @@ Application mobile **ZKA** pour piloter votre commerce depuis un téléphone : c
 
 > Construite avec **Expo (React Native + TypeScript)** : une seule base de code, deux plateformes.
 
+> 🕹️ **Aperçu interactif** : ouvrez [`demo/zka-demo.html`](./demo/zka-demo.html) dans un navigateur pour manipuler une version jouable de l'application (connexion, ventes, messagerie, stock, revenus) — sans rien installer. C'est une démonstration ; l'application réelle est le projet Expo décrit ci-dessous.
+
 ---
 
 ## ✨ Fonctionnalités
