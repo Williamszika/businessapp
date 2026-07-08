@@ -73,6 +73,8 @@
   .divider{height:1px;background:var(--border);}
   .toast{position:absolute;left:50%;bottom:78px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:11px 18px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:50;box-shadow:0 8px 24px var(--shadow);max-width:88%;text-align:center;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .overlay{position:absolute;inset:0;background:rgba(10,11,18,.55);display:flex;align-items:center;justify-content:center;padding:24px;z-index:100;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;width:100%;max-width:340px;box-shadow:0 20px 50px rgba(0,0,0,.45);}
   .switch{width:46px;height:28px;border-radius:999px;background:var(--sunken);padding:3px;transition:.2s;}
   .switch.on{background:var(--violet);}.switch .knob{width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
   .switch.on .knob{transform:translateX(18px);}
@@ -348,7 +350,8 @@ function view(){if(!S.user)return viewLogin();var r=S.route,tabs=tabsFor(S.user)
   case 'parametres':body=viewParametres();break;
   default:body='<div class="pad">—</div>';
  }
- return '<div class="content">'+body+'</div>'+(isTab?tabBar(r.name):'');
+ var ov=S.modal?('<div class="overlay" onclick="ZKA.modalCancel()"><div class="modal" onclick="event.stopPropagation()"><div class="h3">'+esc(S.modal.text)+'</div><div class="row gap12 mt16"><button class="btn btn-sec grow" onclick="ZKA.modalCancel()">Annuler</button><button class="btn '+(S.modal.danger?'btn-danger':'btn-primary')+' grow" onclick="ZKA.modalOk()">'+esc(S.modal.okLabel)+'</button></div></div></div>'):'';
+ return '<div class="content">'+body+'</div>'+(isTab?tabBar(r.name):'')+ov;
 }
 function tabBar(active){var tabs=tabsFor(S.user),u=unreadCount();return '<div class="tabbar">'+tabs.map(function(k){var on=k===active,d=TABDEF[k];var bdg=(k==='messages'&&u>0)?'<span class="tbadge">'+u+'</span>':'';return '<button class="tab '+(on?'on':'')+'" onclick="ZKA.setTab(\''+k+'\')"><svg viewBox="0 0 24 24" width="24" height="24" style="color:'+(on?'var(--violet)':'var(--faint)')+'">'+IC[d[1]]+'</svg>'+bdg+'<span>'+d[0]+'</span></button>';}).join('')+'</div>';}
 
@@ -636,7 +639,7 @@ window.ZKA={
  login:function(){var a=byLogin((S.loginId||'').trim().toLowerCase());if(!a||a.pin!==(S.loginPin||'').trim()){S.loginErr='Identifiant ou code incorrect.';render();return;}if(a.status==='bloque'){S.loginErr='Ce compte est bloqué. Contactez la direction.';render();return;}S.user=a;S.loginErr='';S.loginId='';S.loginPin='';S.route={name:'accueil'};S.prev=[];render();},
  quick:function(login){S.loginId=login;S.loginPin='1234';this.login();},
  toggleDemo:function(){S.showDemo=!S.showDemo;render();},
- logout:function(){if(confirm('Se déconnecter ?')){S.user=null;S.route={name:'accueil'};render();}},
+ logout:function(){ZKA.ask('Voulez-vous vous déconnecter de ZKA ?','Se déconnecter',function(){S.user=null;S.route={name:'accueil'};render();});},
  setTab:setTab,go:go,back:back,toggleTheme:toggleTheme,toast:toast,
  onSearch:function(key,val){var map={venteSearch:'venteQ',stockSearch:'stockQ',equipeSearch:'equipeQ',msgSearch:'msgQ',venteFormQ:'venteFormQ',loginId:'loginId',loginPin:'loginPin'};S[map[key]||key]=val;render();},
  setRange:function(r){S.range=r;render();},setSalesPeriod:function(p){S.salesPeriod=p;render();},setStockCat:function(c){S.stockCat=c;render();},
@@ -655,12 +658,15 @@ window.ZKA={
  af:function(k,v){S.aform[k]=v;render();},
  saveProduct:function(){var f=S._f,name=(f.pname||'').trim(),price=parseFloat((f.pprice||'').replace(',','.'))||0;if(!name||price<=0){toast('Nom et prix requis');return;}S.products.push({id:'p'+Date.now(),name:name,sku:'ZKA-'+Math.floor(1000+Math.random()*9000),cat:(f.pcat||'Divers').trim()||'Divers',price:price,cost:parseFloat((f.pcost||'').replace(',','.'))||0,stock:Math.round(parseFloat(f.pstock||'0'))||0,reorder:Math.round(parseFloat(f.preorder||'5'))||5,unit:(f.punit||'pièce').trim()||'pièce',emoji:S.pform.emoji});S._f={};back();toast('Produit ajouté : '+name);},
  block:function(id){var a=acct(id);if(!a)return;a.status=a.status==='bloque'?'actif':'bloque';toast(a.name+(a.status==='bloque'?' bloqué':' débloqué'));render();},
- del:function(id){var a=acct(id);if(!a)return;if(confirm('Supprimer le compte de '+a.name+' ?')){S.accounts=S.accounts.filter(function(x){return x.id!==id;});toast('Compte supprimé');render();}},
+ del:function(id){var a=acct(id);if(!a)return;ZKA.ask('Supprimer le compte de '+a.name+' ?','Supprimer',function(){S.accounts=S.accounts.filter(function(x){return x.id!==id;});toast('Compte supprimé');render();},true);},
  saveAccount:function(){var f=S.aform,ff=S._f,name=(ff.aname||'').trim(),login=(ff.alogin||'').trim().toLowerCase(),pin=(ff.apin||'').trim();
   if(!name||!login||!pin){toast('Nom, identifiant et code requis');return;}if(byLogin(login)){toast('Cet identifiant existe déjà');return;}
   var em=f.role==='responsable'?'🧑🏾‍💼':'🧑🏾‍💻';var a={id:(f.role==='responsable'?'resp':'com')+Date.now(),role:f.role,name:name,login:login,pin:pin,status:'actif',emoji:em};if(f.role==='commercial'){a.mgr=f.mgr||responsables()[0].id;a.comm=0.03;}else a.phone='';
   S.accounts.push(a);S._f={};S.aform={role:'commercial',mgr:responsables()[0].id};S.prev=[{name:'comptes'}];S.route={name:'badge',id:a.id};render();scrollTop();toast('Compte créé : @'+login);},
- reset:function(){if(confirm('Réinitialiser toutes les données ?')){var u=S.user;S=freshState();S.user=byLogin(u.login)||null;if(!S.user){S.user=null;}render();toast('Démonstration réinitialisée');}}
+ reset:function(){ZKA.ask('Réinitialiser toutes les données de démonstration ?','Réinitialiser',function(){var u=S.user;S=freshState();S.user=byLogin(u.login)||null;render();toast('Démonstration réinitialisée');},true);},
+ ask:function(text,okLabel,fn,danger){S.modal={text:text,okLabel:okLabel,fn:fn,danger:danger};render();},
+ modalOk:function(){var m=S.modal;S.modal=null;if(m&&m.fn)m.fn();render();},
+ modalCancel:function(){S.modal=null;render();}
 };
 S.pform={emoji:'📦'};
 var _go=go;window.ZKA.go=function(name,id){if(name==='produitNew'){S.pform={emoji:'📦'};S._f={};}if(name==='compteNew'){S.aform={role:'commercial',mgr:responsables()[0].id};S._f={};}_go(name,id);};
