@@ -79,6 +79,37 @@ Voir la configuration dans [`eas.json`](./eas.json) et l'identité de l'app dans
 
 ---
 
+## 🌐 Héberger la version web sur Vercel
+
+La même base de code fournit aussi une **version web** (via react-native-web). C'est **cette version** qui peut être hébergée sur Vercel — les applications installables (APK Android / iOS) passent, elles, par EAS Build (voir ci-dessus), pas par Vercel.
+
+Le projet est déjà configuré ([`vercel.json`](./vercel.json)) en mode **SPA** :
+
+**Option A — depuis le tableau de bord Vercel (recommandé)**
+1. Poussez le dépôt sur GitHub (déjà fait).
+2. Sur [vercel.com](https://vercel.com) : **New Project** → importez le dépôt.
+3. Vercel lit `vercel.json` automatiquement :
+   - Build : `npx expo export --platform web`
+   - Dossier de sortie : `dist`
+4. **Deploy** → votre app est en ligne (ex. `https://zka.vercel.app`).
+
+**Option B — en ligne de commande**
+```bash
+npm install -g vercel
+npm run build:web   # génère le dossier dist/
+vercel deploy --prebuilt   # ou simplement: vercel
+```
+
+Tester le build web en local :
+```bash
+npm run build:web       # génère dist/
+npx serve dist          # sert la version web localement
+```
+
+> À savoir : la version web stocke les données dans le navigateur (localStorage). Les vibrations (haptique) sont ignorées sur le web, sans impact sur le fonctionnement.
+
+---
+
 ## 🧱 Stack technique
 
 - **Expo SDK 57** · React Native 0.86 · React 19 · TypeScript (strict)
