@@ -85,9 +85,18 @@
     await afterLogin();
   }
 
+  var diag = {};
   async function afterLogin(){
-    var prof = await sb.from('profiles').select('*').eq('id', (await sb.auth.getUser()).data.user.id).maybeSingle();
-    me = prof.data || { name: 'Utilisateur', role: '—' };
+    var sess = await sb.auth.getSession();
+    var user = (sess.data && sess.data.session) ? sess.data.session.user : null;
+    if (!user){ var gu = await sb.auth.getUser(); user = gu.data ? gu.data.user : null; }
+    diag.hasSession = !!(sess.data && sess.data.session);
+    diag.email = user ? user.email : '(aucun)';
+    diag.uid = user ? user.id : '(aucun)';
+    var prof = await sb.from('profiles').select('*').eq('id', user ? user.id : '00000000-0000-0000-0000-000000000000').maybeSingle();
+    diag.profErr = prof.error ? (prof.error.message || JSON.stringify(prof.error)) : null;
+    diag.profFound = !!prof.data;
+    me = prof.data || { name: (user && user.email) || 'Utilisateur', role: '—' };
     await syncAll();
     subscribeRealtime();
     render();
@@ -96,6 +105,8 @@
   async function syncAll(){
     var p = await sb.from('products').select('*').order('name');
     var hd = await sb.from('holdings').select('*');
+    diag.prodErr = p.error ? (p.error.message || JSON.stringify(p.error)) : null;
+    diag.prodCount = (p.data || []).length;
     state.products = p.data || [];
     state.holdings = hd.data || [];
   }
@@ -121,6 +132,14 @@
     }).join('');
     h(header('Connecté — données en direct 🟢')
       + '<div class="card"><div class="row" style="justify-content:space-between"><div><b>'+esc(me.name)+'</b><div class="cap">Rôle : '+esc(me.role)+'</div></div><span class="badge ok">temps réel</span></div></div>'
+      + '<div class="card"><div class="cap" style="margin-bottom:6px">Diagnostic</div>'
+        + '<div class="lrow"><span>Session active</span><span class="badge '+(diag.hasSession?'ok':'dg')+'">'+(diag.hasSession?'oui':'non')+'</span></div>'
+        + '<div class="lrow"><span>Email</span><span class="cap">'+esc(diag.email)+'</span></div>'
+        + '<div class="lrow"><span>Profil trouvé</span><span class="badge '+(diag.profFound?'ok':'dg')+'">'+(diag.profFound?'oui':'NON')+'</span></div>'
+        + (diag.profErr ? '<div class="lrow"><span>Erreur profil</span><span class="cap" style="color:var(--danger)">'+esc(diag.profErr)+'</span></div>' : '')
+        + '<div class="lrow"><span>Produits lus</span><span class="badge '+(diag.prodCount>0?'ok':'warn')+'">'+(diag.prodCount!=null?diag.prodCount:'?')+'</span></div>'
+        + (diag.prodErr ? '<div class="lrow"><span>Erreur produits</span><span class="cap" style="color:var(--danger)">'+esc(diag.prodErr)+'</span></div>' : '')
+      + '</div>'
       + '<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px"><b>Entrepôt central</b><span class="cap">'+state.products.length+' produits • '+totalStock+' u.</span></div>'
       + (rows || '<div class="sm">Aucun produit. '+(me.role==='boss'?'Ajoutez-en un ci-dessous.':'La direction doit en ajouter.')+'</div>')
       + '</div>'
