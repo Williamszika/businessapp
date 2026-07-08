@@ -255,6 +255,20 @@ create policy "sales_read"      on public.sales      for select to authenticated
 create policy "sale_items_read" on public.sale_items for select to authenticated using (true);
 
 -- =====================================================================
+-- Accès (privilèges) — explicites, pour fonctionner quel que soit le
+-- réglage "Automatically expose new tables" à la création du projet.
+-- Seuls les utilisateurs CONNECTÉS accèdent aux données ; la protection
+-- fine est assurée par les politiques RLS ci-dessus. Les écritures sur le
+-- stock / les ventes passent par les fonctions (SECURITY DEFINER).
+-- =====================================================================
+grant usage on schema public to authenticated;
+grant select on all tables in schema public to authenticated;
+grant insert, update, delete on public.profiles to authenticated;
+grant insert, update, delete on public.products to authenticated;
+grant execute on function public.assign_stock(uuid, uuid, integer) to authenticated;
+grant execute on function public.record_sale(jsonb, text, text) to authenticated;
+
+-- =====================================================================
 -- Synchronisation temps réel (les téléphones se mettent à jour tout seuls)
 -- =====================================================================
 alter publication supabase_realtime add table public.products;
