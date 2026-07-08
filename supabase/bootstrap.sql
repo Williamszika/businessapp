@@ -7,7 +7,7 @@
 --
 -- AVANT de lancer : créez d'abord votre compte dans
 --   Supabase → Authentication → Users → Add user  (email + mot de passe)
--- puis remplacez ci-dessous 'VOTRE_EMAIL_ICI' par cet email.
+-- puis remplacez ci-dessous 'zikabiabraham@protonmail.com' par cet email.
 -- =====================================================================
 
 -- 1) À chaque nouveau compte Auth, créer un profil (rôle par défaut : commercial)
