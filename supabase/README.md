@@ -28,12 +28,17 @@ le boss attribue du stock → c'est enregistré en ligne → le commercial le vo
    - Copiez la clé **anon public** (`anon` / `publishable`).
    - ⚠️ Ne partagez **jamais** la clé `service_role` (secrète).
 
-4. **Créer les comptes de votre équipe**
-   - Menu **Authentication → Users → Add user** : créez un compte
-     (email + mot de passe) pour chaque personne (boss, responsables, commerciaux).
-   - Puis, dans **SQL Editor**, on renseignera leur rôle (boss / responsable /
-     commercial) et les rattachements. Je vous fournirai le petit script une fois
-     les comptes créés (il suffit de coller les emails).
+4. **Créer votre compte + amorcer la base**
+   - Menu **Authentication → Users → Add user** : créez **votre** compte
+     (email + mot de passe). Ce sera la direction (boss).
+   - Ouvrez [`bootstrap.sql`](./bootstrap.sql), remplacez `VOTRE_EMAIL_ICI` par
+     cet email, puis exécutez-le dans **SQL Editor**. Il crée le profil
+     automatique des futurs comptes, remplit l'entrepôt de produits de départ,
+     et vous promeut en direction.
+   - Pour le reste de l'équipe : **Authentication → Add user** pour chaque
+     responsable/commercial (leur profil est créé automatiquement en
+     « commercial »). Je vous fournis ensuite un court script pour fixer les
+     rôles « responsable » et les rattachements (envoyez-moi qui est quoi).
 
 5. **Renseigner les 2 valeurs** dans [`demo/config.js`](../demo/config.js)
    (ou envoyez-les moi, je le fais). Tant qu'elles sont vides, l'app reste en

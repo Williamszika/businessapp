@@ -11,6 +11,7 @@
  * Tant qu'elles sont vides, l'application reste en mode démonstration local.
  */
 window.ZKA_SUPABASE = {
-  url: "",
-  anonKey: ""
+  url: "https://cwfwzwiuhjuyiaaqmhmu.supabase.co",
+  // Clé publique (nouveau format Supabase "publishable" ; équivaut à l'ancienne clé "anon").
+  anonKey: "sb_publishable_cTkYyHvX9TPT7jMgDlLm4w_TvG5xGZp"
 };
