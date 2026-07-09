@@ -184,6 +184,7 @@ function render(){
     case 'stock':body=viewMonStock();break;
     case 'vendre':body=viewVendre();break;
     case 'ventes':body=viewVentes();break;
+    case 'recu':body=viewRecu(S.sel.saleId);break;
     default:body=viewAccueil();
   }
   var tabs=tabsFor();
@@ -218,7 +219,7 @@ function dashResp(){
   h+='<div class="hero"><div class="sm" style="color:#fff;opacity:.9">Chiffre de mon équipe ce mois</div><div style="font-size:30px;font-weight:800;letter-spacing:-1px">'+money(monthRev(ts))+'</div>'
     +'<div class="row" style="gap:20px;margin-top:12px"><div><div class="cap" style="color:#fff;opacity:.8">Aujourd\'hui</div><div class="bold">'+compact(sumT(salesToday(ts)))+'</div></div><div><div class="cap" style="color:#fff;opacity:.8">Commerciaux</div><div class="bold">'+team.length+'</div></div></div></div>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('🛒','primary','Ventes 30j',inLast(ts,30).length)+stat('📦','info','Ma réserve',carriedOf(S.me.id)+' u.')+'</div>';
-  var myOwn=salesOf(S.me.id),crP=S.me.comm||0;
+  var myOwn=salesOf(S.me.id),crP=S.me.comm||0.05;
   h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">💵</div><div><div class="semi">Ma commission (mes ventes)</div><div class="cap">'+Math.round(crP*100)+' % de mes ventes perso</div></div></div><div class="h2" style="color:var(--success)">'+money(crP*sumT(myOwn))+'</div></div>';
   h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">👥</div><div><div class="semi">Commission d\'équipe</div><div class="cap">'+Math.round(TEAM_OVERRIDE*100)+' % des ventes de l\'équipe</div></div></div><div class="h2" style="color:var(--success)">'+money(TEAM_OVERRIDE*sumT(ts))+'</div></div>';
   h+='<button class="full" onclick="ZK.go(\'vendre\')" style="margin-bottom:12px">🛒 Enregistrer une vente</button>';
@@ -226,6 +227,8 @@ function dashResp(){
   h+=chartCard(ts);
   var rank=rankSellers(team);
   if(rank.length){h+='<div class="card"><div class="h3" style="margin-bottom:8px">Classement de l\'équipe</div>'+rank.map(function(x,i){return '<div class="lrow"><div style="width:18px;text-align:center;font-weight:700;color:'+(i===0?'var(--gold)':'var(--faint)')+'">'+(i+1)+'</div>'+avatar(x.c.name,38)+'<div class="grow"><div class="semi ell">'+esc(x.c.name)+'</div><div class="cap">'+x.count+' ventes • '+carriedOf(x.c.id)+' u. en stock</div></div><div class="semi">'+compact(x.rev)+'</div></div>';}).join('')+'</div>';}
+  var teamIds={};team.forEach(function(c){teamIds[c.id]=1;});teamIds[S.me.id]=1;
+  h+=recentSales(S.sales.filter(function(s){return teamIds[s.seller_id];}),'Ventes récentes (moi + équipe)');
   return h;
 }
 function dashCom(){
@@ -234,7 +237,7 @@ function dashCom(){
     +'<div class="row" style="gap:20px;margin-top:12px"><div><div class="cap" style="color:#fff;opacity:.8">Aujourd\'hui</div><div class="bold">'+compact(sumT(salesToday(my)))+'</div></div><div><div class="cap" style="color:#fff;opacity:.8">Ventes 30j</div><div class="bold">'+inLast(my,30).length+'</div></div></div></div>';
   h+='<button class="full" onclick="ZK.go(\'vendre\')" style="margin-bottom:12px">🛒 Enregistrer une vente</button>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','primary','Mon stock',carriedOf(S.me.id)+' u.')+stat('💰','success','Chiffre 30j',compact(sumT(inLast(my,30))))+'</div>';
-  var crC=S.me.comm||0;h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">💵</div><div><div class="semi">Ma commission</div><div class="cap">'+Math.round(crC*100)+' % de mes ventes</div></div></div><div class="h2" style="color:var(--success)">'+money(crC*sumT(my))+'</div></div>';
+  var crC=S.me.comm||0.05;h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">💵</div><div><div class="semi">Ma commission</div><div class="cap">'+Math.round(crC*100)+' % de mes ventes</div></div></div><div class="h2" style="color:var(--success)">'+money(crC*sumT(my))+'</div></div>';
   var lows=mine.filter(function(x){return x.qty<=3;}).length;
   h+='<div class="card" onclick="ZK.go(\'stock\')"><div class="row between"><div class="row" style="gap:10px">📦<div><div class="semi">Mon stock terrain</div><div class="cap">'+mine.length+' produit(s)'+(lows?' • '+lows+' faible(s)':'')+'</div></div></div><div class="h2">'+carriedOf(S.me.id)+'</div></div></div>';
   h+=chartCard(my);
@@ -242,7 +245,7 @@ function dashCom(){
   return h;
 }
 function recentSales(a,title){var rec=a.slice(0,5);if(!rec.length)return '<div class="card sm center">Aucune vente pour l\'instant.</div>';
-  return '<div class="card"><div class="h3" style="margin-bottom:8px">'+title+'</div>'+rec.map(function(s){var seller=profById(s.seller_id),d=new Date(s.created_at);return '<div class="lrow"><div class="ico" style="background:var(--successS)">🧾</div><div class="grow"><div class="semi ell">'+esc(s.customer||'Client comptant')+'</div><div class="cap">'+(role()!=='commercial'&&seller?esc(firstName(seller.name))+' • ':'')+d.toLocaleDateString('fr-FR')+'</div></div><div class="semi" style="color:var(--success)">'+money(s.total)+'</div></div>';}).join('')+'</div>';}
+  return '<div class="card"><div class="h3" style="margin-bottom:8px">'+title+'</div>'+rec.map(function(s){var seller=profById(s.seller_id),d=new Date(s.created_at);return '<div class="lrow" style="cursor:pointer" onclick="ZK.openRecu(\''+s.id+'\')"><div class="ico" style="background:var(--successS)">🧾</div><div class="grow"><div class="semi ell">'+esc(s.customer||'Client comptant')+' ›</div><div class="cap">'+(role()!=='commercial'&&seller?esc(firstName(seller.name))+' • ':'')+d.toLocaleDateString('fr-FR')+'</div></div><div class="semi" style="color:var(--success)">'+money(s.total)+'</div></div>';}).join('')+'</div>';}
 
 /* ---------- Entrepôt (boss) ---------- */
 function viewEntrepot(){
@@ -423,7 +426,27 @@ function viewVentes(){
   var h='<div class="h1" style="margin-bottom:12px">Mes ventes</div>';
   h+='<div class="card row">'+miniStat('Ventes',my.length)+miniStat('Chiffre',compact(sumT(my)))+miniStat('Aujourd\'hui',salesToday(my).length)+'</div>';
   if(!my.length)return h+'<div class="card sm center">Aucune vente enregistrée.</div>';
-  h+='<div class="card">'+my.slice(0,40).map(function(s){var d=new Date(s.created_at);return '<div class="lrow"><div class="ico" style="background:var(--successS)">🧾</div><div class="grow"><div class="semi ell">'+esc(s.customer||'Client comptant')+'</div><div class="cap">'+esc(s.ref||'')+' • '+d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div></div><div class="semi" style="color:var(--success)">'+money(s.total)+'</div></div>';}).join('')+'</div>';
+  h+='<div class="card">'+my.slice(0,40).map(function(s){var d=new Date(s.created_at);return '<div class="lrow" style="cursor:pointer" onclick="ZK.openRecu(\''+s.id+'\')"><div class="ico" style="background:var(--successS)">🧾</div><div class="grow"><div class="semi ell">'+esc(s.customer||'Client comptant')+' ›</div><div class="cap">'+esc(s.ref||'')+' • '+d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div></div><div class="semi" style="color:var(--success)">'+money(s.total)+'</div></div>';}).join('')+'</div>';
+  return h;
+}
+function viewRecu(id){
+  var s=null;for(var i=0;i<S.sales.length;i++)if(S.sales[i].id===id)s=S.sales[i];
+  var backRoute=(role()==='commercial')?'ventes':'accueil';
+  if(!s)return backBtn(backRoute)+'<div class="card sm center">Reçu introuvable.</div>';
+  var seller=profById(s.seller_id),d=new Date(s.created_at);
+  var h=backBtn(backRoute);
+  h+='<div class="card" style="padding:0;overflow:hidden">';
+  h+='<div style="background:linear-gradient(135deg,var(--violet2),var(--violet3));color:#fff;padding:18px;text-align:center"><div style="font-size:22px;font-weight:800;letter-spacing:-1px">ZKA</div><div class="cap" style="color:#fff;opacity:.9">REÇU DE VENTE</div><div style="font-size:22px;font-weight:800;margin-top:8px">'+money(s.total)+'</div><div class="cap" style="color:#fff;opacity:.9">N° '+esc(s.ref||'')+'</div></div>';
+  h+='<div style="padding:16px">';
+  h+='<div class="lrow between"><span class="sm">Date</span><span class="semi">'+d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</span></div>';
+  h+='<div class="lrow between"><span class="sm">Vendeur</span><span class="semi">'+esc(seller?seller.name:'—')+'</span></div>';
+  h+='<div class="lrow between"><span class="sm">Client</span><span class="semi">'+esc(s.customer||'Client comptant')+'</span></div>';
+  h+='<div class="lrow between"><span class="sm">Paiement</span><span class="semi">'+esc(s.pay||'—')+'</span></div>';
+  h+='<div style="border-top:1px dashed var(--border);margin:12px 0"></div><div class="cap" style="font-weight:700;letter-spacing:.5px;margin-bottom:4px">ARTICLES</div>';
+  (s.sale_items||[]).forEach(function(it){h+='<div class="lrow between"><span class="sm">'+esc(it.name)+' <span class="cap">×'+it.quantity+'</span></span><span class="semi">'+money(it.quantity*it.unit_price)+'</span></div>';});
+  h+='<div style="border-top:1px dashed var(--border);margin:12px 0"></div><div class="lrow between"><span class="bold">TOTAL</span><span class="bold" style="font-size:18px">'+money(s.total)+'</span></div>';
+  h+='<div class="center cap mut">Merci de votre achat ! 🙏</div></div></div>';
+  if(role()==='commercial'||role()==='responsable')h+='<button class="full" onclick="ZK.go(\'vendre\')">🛒 Nouvelle vente</button>';
   return h;
 }
 
@@ -505,7 +528,8 @@ window.ZK={
     var r=await sb.from('expenses').insert({label:label,amount:amount,category:f.category||'Autre'});if(r.error){toastErr(r.error);return;}
     S.exp={category:'Achat stock'};toast('Dépense ajoutée ✅');await refresh();},
   delExpense:async function(id){var r=await sb.from('expenses').delete().eq('id',id);if(r.error){toastErr(r.error);return;}toast('Dépense supprimée');await refresh();},
-  sell:async function(){var items=[];Object.keys(S.cart).forEach(function(id){if(S.cart[id]>0)items.push({product_id:id,quantity:S.cart[id]});});if(!items.length){toast('Ajoutez un produit');return;}var r=await sb.rpc('record_sale',{p_items:items,p_pay:S.sel.pay||'espèces',p_customer:S.sel.cust||null});if(r.error){toastErr(r.error);return;}S.cart={};S.sel.cust='';toast('Vente enregistrée ✅');S.route='ventes';await refresh();},
+  sell:async function(){var items=[];Object.keys(S.cart).forEach(function(id){if(S.cart[id]>0)items.push({product_id:id,quantity:S.cart[id]});});if(!items.length){toast('Ajoutez un produit');return;}var r=await sb.rpc('record_sale',{p_items:items,p_pay:S.sel.pay||'espèces',p_customer:S.sel.cust||null});if(r.error){toastErr(r.error);return;}S.cart={};S.sel.cust='';await refresh();S.sel.saleId=r.data;S.route='recu';render();toast('Vente enregistrée ✅');},
+  openRecu:function(id){S.sel.saleId=id;S.route='recu';render();window.scrollTo(0,0);},
   createUser:async function(){var f=S.nu;var b=document.getElementById('btnCreate');if(!f.email||!f.pw){toast('Email et mot de passe requis');return;}if(f.role==='commercial'&&!f.mgr){toast('Choisissez le responsable de ce commercial');return;}b.textContent='Création…';b.disabled=true;
     var r=await sb.rpc('admin_create_user',{p_email:f.email,p_password:f.pw,p_name:f.name||null,p_role:f.role||'commercial',p_mgr:f.mgr||null});
     if(r.error){toast('⚠ '+(r.error.message||r.error));b.textContent='Créer le compte';b.disabled=false;return;}
