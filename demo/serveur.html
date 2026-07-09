@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09h (gestes glisser gauche/droite) -->
+<!-- ZKA build: 2026-07-09i (glisser une ligne pour des actions rapides) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -63,6 +63,11 @@
     body,#app,.content{background:#fff}
     .paper{border:none}
   }
+  .swipe{position:relative;overflow:hidden;border-top:1px solid var(--border)}
+  .swipe:first-child{border-top:none}
+  .swipe-actions{position:absolute;top:0;right:0;bottom:0;display:flex}
+  .sa-btn{border-radius:0;width:58px;display:grid;place-items:center;font-size:19px;padding:0;color:#fff}
+  .swipe-fg{position:relative;background:var(--surface);display:flex;align-items:center;gap:11px;padding:11px 0;transition:transform .2s ease;touch-action:pan-y}
 </style>
 </head>
 <body>
@@ -275,6 +280,11 @@ function viewEntrepot(){
 function miniStat(l,v){return '<div class="grow center"><div class="h2">'+v+'</div><div class="cap">'+l+'</div></div>';}
 function warehouseValue(){return S.products.reduce(function(s,p){return s+(p.stock||0)*(p.cost||0);},0);}
 function backBtn(to){return '<button class="ghost" style="padding:8px 12px;margin-bottom:12px" onclick="ZK.go(\''+to+'\')">← Retour</button>';}
+/* Ligne glissable : glisser vers la gauche révèle les boutons d'action à droite. */
+function swipeRow(fgInner,fgStyle,openClick,actions){
+  var acts=actions.map(function(a){return '<button class="sa-btn" style="background:'+a.c+'" onclick="'+a.fn+'">'+a.e+'</button>';}).join('');
+  return '<div class="swipe"><div class="swipe-actions">'+acts+'</div><div class="swipe-fg"'+(fgStyle?' style="'+fgStyle+'"':'')+' onclick="'+openClick+'">'+fgInner+'</div></div>';
+}
 var EMOJIS=['📦','🥤','💧','🍚','🛢️','🧼','☕','🥛','🔌','🎧','👕','🧢','🍪','🍯','🧂','🥫','🍅','🧴','💊','📱','👟','🔋'];
 
 /* ---------- Fiche produit (détails) ---------- */
@@ -369,12 +379,12 @@ function viewTerrain(){
 function viewEquipe(){
   var h='<div class="h1" style="margin-bottom:12px">Équipe</div>';
   if(role()==='responsable'){var team=commerciauxOf(S.me.id);
-    h+='<div class="cap" style="margin-bottom:6px">Touchez un commercial pour voir tout son détail.</div>';
-    h+='<div class="card">'+(team.length?team.map(function(c){return '<div class="lrow" style="cursor:pointer" onclick="ZK.openMembre(\''+c.id+'\')">'+avatar(c.name,40)+'<div class="grow"><div class="semi ell">'+esc(c.name)+' ›</div><div class="cap">Commercial • détient '+carriedOf(c.id)+' u. • '+salesOf(c.id).length+' ventes</div></div></div>';}).join(''):'<div class="sm center">Aucun commercial rattaché.</div>')+'</div>';
+    h+='<div class="cap" style="margin-bottom:6px">Touchez un commercial pour son détail ; glissez son nom vers la gauche pour les actions (🧾 bulletin, 📤 attribuer).</div>';
+    h+='<div class="card">'+(team.length?team.map(function(c){var inner=avatar(c.name,40)+'<div class="grow" style="min-width:0"><div class="semi ell">'+esc(c.name)+' ›</div><div class="cap ell">Commercial • '+salesOf(c.id).length+' ventes • '+carriedOf(c.id)+' u.</div></div>';return swipeRow(inner,'',"ZK.openMembre('"+c.id+"')",[{e:'🧾',c:'var(--gold)',fn:"ZK.openBulletin('"+c.id+"')"},{e:'📤',c:'var(--violet)',fn:"ZK.assignTo('"+c.id+"')"}]);}).join(''):'<div class="sm center">Aucun commercial rattaché.</div>')+'</div>';
     return h;
   }
   var pres=isPresident();
-  h+='<div class="cap" style="margin-bottom:8px">Touchez un membre pour voir son détail et le gérer (poste, rattachement, commission, part, suppression).</div>';
+  h+='<div class="cap" style="margin-bottom:8px">Touchez un membre pour son détail ; glissez son nom vers la gauche pour les actions rapides (🧾 bulletin, 📤 attribuer, 🗑️ supprimer).</div>';
   // --- Direction (bureau — 5 fauteuils) ---
   var bs=bosses(),totalShare=bs.reduce(function(s,b){return s+(b.own||0);},0);
   h+='<div class="h3" style="margin-bottom:8px">🏛️ Direction — '+bs.length+'/5 fauteuils</div>';
@@ -393,7 +403,11 @@ function viewEquipe(){
   } else h+='<div class="card sm center">👑 Seul le président peut créer ou supprimer des comptes.</div>';
   // --- Organisation : chaque responsable, puis ses commerciaux (lecture seule ; on touche pour gérer) ---
   function orow(p,ind){var rate=' • com. '+Math.round((p.comm||0)*100)+' %'+(p.role==='responsable'?' + éq. '+Math.round(teamRate(p)*100)+' %':'');
-    return '<div class="lrow" style="cursor:pointer'+(ind?';padding-left:12px':'')+'" onclick="ZK.openMembre(\''+p.id+'\')">'+avatar(p.name,ind?32:40)+'<div class="grow" style="min-width:0"><div class="semi ell">'+(ind?'↳ ':'')+esc(p.name)+' ›</div><div class="cap ell">'+poste(p)+' • '+salesOf(p.id).length+' ventes • '+carriedOf(p.id)+' u.'+rate+'</div></div></div>';}
+    var inner=avatar(p.name,ind?32:40)+'<div class="grow" style="min-width:0"><div class="semi ell">'+(ind?'↳ ':'')+esc(p.name)+' ›</div><div class="cap ell">'+poste(p)+' • '+salesOf(p.id).length+' ventes • '+carriedOf(p.id)+' u.'+rate+'</div></div>';
+    var actions=[{e:'🧾',c:'var(--gold)',fn:"ZK.openBulletin('"+p.id+"')"}];
+    if(eligibleHolders().some(function(x){return x.id===p.id;}))actions.push({e:'📤',c:'var(--violet)',fn:"ZK.assignTo('"+p.id+"')"});
+    if(pres)actions.push({e:'🗑️',c:'var(--danger)',fn:"ZK.deleteUser('"+p.id+"','"+esc((p.name||'').replace(/\x27/g,''))+"')"});
+    return swipeRow(inner,(ind?'padding-left:12px':''),"ZK.openMembre('"+p.id+"')",actions);}
   var rs=responsables();
   h+='<div class="h3" style="margin:14px 0 8px">👥 Organisation</div>';
   if(!rs.length&&!commerciaux().length)h+='<div class="card sm center">Aucun membre commercial pour l\'instant.</div>';
@@ -692,15 +706,33 @@ function onSwipe(dir){
   else if(dir==='right'){var to=swipeBackTarget();if(to){S.route=to;render();window.scrollTo(0,0);}}
 }
 (function(){
-  var x0=null,y0=null,t0=0,ig=false;
+  var x0=null,y0=null,t0=0,ig=false,mode=null,row=null,fg=null,maxSw=0,wasOpen=false;
+  function closeAll(except){var els=app.querySelectorAll('.swipe.open');for(var i=0;i<els.length;i++){if(els[i]===except)continue;els[i].classList.remove('open');var f=els[i].querySelector('.swipe-fg');if(f)f.style.transform='';}}
   app.addEventListener('touchstart',function(e){
     if(!e.touches||e.touches.length!==1){x0=null;return;}
-    var t=e.touches[0];x0=t.clientX;y0=t.clientY;t0=Date.now();
-    ig=!!(e.target&&e.target.closest&&e.target.closest('.chips,input,select,textarea,.stepper'));
+    var t=e.touches[0];x0=t.clientX;y0=t.clientY;t0=Date.now();mode=null;row=null;fg=null;wasOpen=false;
+    var el=e.target;
+    ig=!!(el&&el.closest&&el.closest('.chips,input,select,textarea,.stepper,.sa-btn'));
+    var sw=el&&el.closest?el.closest('.swipe'):null;
+    closeAll(sw);
+    if(sw&&!ig){row=sw;fg=sw.querySelector('.swipe-fg');var acts=sw.querySelector('.swipe-actions');maxSw=acts?acts.offsetWidth:0;wasOpen=sw.classList.contains('open');}
+  },{passive:true});
+  app.addEventListener('touchmove',function(e){
+    if(x0==null||ig)return;
+    var t=e.touches[0],dx=t.clientX-x0,dy=t.clientY-y0;
+    if(mode==null){if(Math.abs(dx)>8&&Math.abs(dx)>Math.abs(dy)){mode='h';}else if(Math.abs(dy)>8){mode='v';}}
+    if(mode==='h'&&row&&fg){var base=wasOpen?-maxSw:0,tx=Math.max(-maxSw,Math.min(0,base+dx));fg.style.transform='translateX('+tx+'px)';}
   },{passive:true});
   app.addEventListener('touchend',function(e){
     if(x0==null||ig){x0=null;return;}
-    var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0,dt=Date.now()-t0;x0=null;
+    var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0,dt=Date.now()-t0,r=row,f=fg,ms=maxSw,wo=wasOpen,md=mode;x0=null;row=null;fg=null;
+    if(r&&f&&md==='h'){
+      var final=(wo?-ms:0)+dx;
+      if(final<-ms*0.4){f.style.transform='translateX('+(-ms)+'px)';r.classList.add('open');}
+      else{f.style.transform='';r.classList.remove('open');}
+      return;
+    }
+    if(md==='v')return;
     if(dt>600||Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.8)return;
     onSwipe(dx<0?'left':'right');
   },{passive:true});
