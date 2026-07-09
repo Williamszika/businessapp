@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09d (organigramme Équipe + fiche membre ancienneté/CA) -->
+<!-- ZKA build: 2026-07-09e (fiche membre : courbe + classement) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -467,6 +467,12 @@ function viewMembre(id){
   h+='<div class="card"><div class="lrow between"><div class="sm">Arrivée sur le site</div><div class="semi">'+fmtDate(m.created_at)+'</div></div><div class="lrow between"><div class="sm">Ancienneté</div><div class="semi">'+tenure(m.created_at)+'</div></div><div class="lrow between"><div class="sm">CA depuis la prise de fonction</div><div class="semi" style="color:var(--success)">'+money(sumT(my))+'</div></div>'+(isB?'<div class="lrow between"><div class="sm">Part du bénéfice</div><div class="semi">'+(m.own||0)+' % • '+money(shareAmount(m.own))+'</div></div>':'<div class="lrow between"><div class="sm">Salaire mensuel</div><div class="semi">'+money(m.salary||0)+'</div></div><div class="lrow between"><div class="sm">Commission à percevoir</div><div class="semi" style="color:var(--success)">'+money(commDue(m))+'</div></div>')+'</div>';
   if(!isB)h+='<button class="full sec" onclick="ZK.openBulletin(\''+m.id+'\')" style="margin-bottom:12px">🧾 Bulletin de paie</button>';
   if(eligibleHolders().some(function(a){return a.id===m.id;}))h+='<button class="full" onclick="ZK.assignTo(\''+m.id+'\')" style="margin-bottom:12px">📤 Lui attribuer du stock</button>';
+  if(!isB){
+    var ranked=rankSellers(responsables().concat(commerciaux())),pos=0;
+    for(var ri=0;ri<ranked.length;ri++){if(ranked[ri].c.id===m.id){pos=ri+1;break;}}
+    if(pos>0)h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">🏆</div><div><div class="semi">Classement des vendeurs</div><div class="cap">au chiffre d\'affaires</div></div></div><div class="h2" style="color:var(--warn)">'+pos+' <span class="cap" style="color:var(--faint)">/ '+ranked.length+'</span></div></div>';
+    h+=chartCard(my);
+  }
   h+='<div class="h3" style="margin-bottom:8px">Son stock ('+carriedOf(m.id)+' u.)</div>';
   if(!hold.length)h+='<div class="card sm center">Ne détient aucun produit.</div>';
   else h+='<div class="card">'+hold.map(function(x){var low=x.qty<=3;return '<div class="lrow"><div class="grow"><div class="semi ell">'+esc(x.p.emoji||'📦')+' '+esc(x.p.name)+'</div><div class="cap">'+money(x.p.price)+'</div></div><div class="bold">'+x.qty+'</div><span class="badge '+(low?'warn':'ok')+'">'+(low?'faible':'ok')+'</span></div>';}).join('')+'</div>';
