@@ -92,7 +92,10 @@ function eligibleHolders(){if(role()==='boss')return responsables().concat(comme
 function warehouseTotal(){return S.products.reduce(function(s,p){return s+(p.stock||0);},0);}
 function fieldTotal(){return S.profiles.filter(function(p){return p.role!=='boss';}).reduce(function(s,p){return s+carriedOf(p.id);},0);}
 function fieldTotalOf(pid){var t=0;S.profiles.forEach(function(p){if(p.role!=='boss')t+=heldQty(p.id,pid);});return t;}
-function roleLabel(r){return r==='boss'?'Direction':r==='responsable'?'Responsable':r==='commercial'?'Commercial':'—';}
+function roleLabel(r){return r==='boss'?'Direction':r==='responsable'?'Responsable commercial':r==='commercial'?'Commercial':'—';}
+function poste(a){if(!a)return '—';if(a.role==='boss')return a.sup?'Président':'Directeur associé';if(a.role==='responsable')return 'Responsable commercial';if(a.role==='commercial')return 'Commercial';return '—';}
+function isPresident(){return !!(S.me&&S.me.role==='boss'&&S.me.sup);}
+function bosses(){return S.profiles.filter(function(p){return p.role==='boss';});}
 function firstName(n){return (''+n).split(' ')[0]||n;}
 
 /* ---------- Analytique (ventes réelles) ---------- */
@@ -176,6 +179,7 @@ function render(){
     case 'attribuer':body=viewAttribuer();break;
     case 'terrain':body=viewTerrain();break;
     case 'equipe':body=viewEquipe();break;
+    case 'profil':body=viewProfil();break;
     case 'stock':body=viewMonStock();break;
     case 'vendre':body=viewVendre();break;
     case 'ventes':body=viewVentes();break;
@@ -185,7 +189,7 @@ function render(){
   var bar='<div class="tabbar">'+tabs.map(function(t){return '<button class="tab '+(S.route===t[0]?'on':'')+'" onclick="ZK.go(\''+t[0]+'\')"><span class="ti">'+t[1]+'</span><span>'+t[2]+'</span></button>';}).join('')+'</div>';
   app.innerHTML='<div class="content">'+body+'</div>'+bar;
 }
-function topRow(){return '<div class="row between" style="margin-bottom:12px"><div><div class="sm">'+greet()+',</div><div class="h2 ell">'+esc(S.me.name)+'</div></div><button class="ghost" style="padding:9px 12px" onclick="ZK.logout()">Quitter</button></div>';}
+function topRow(){return '<div class="row between" style="margin-bottom:12px"><div class="row" style="gap:10px;cursor:pointer" onclick="ZK.go(\'profil\')">'+avatar(S.me.name,42)+'<div><div class="semi ell">'+esc(S.me.name)+'</div><div class="cap">'+poste(S.me)+' ›</div></div></div><button class="ghost" style="padding:9px 12px" onclick="ZK.logout()">Quitter</button></div>';}
 function greet(){var h=new Date().getHours();return h<12?'Bonjour':h<18?'Bon après-midi':'Bonsoir';}
 function stat(icon,tone,label,val){var t={success:['var(--successS)','var(--success)'],primary:['var(--primS)','var(--violet)'],info:['var(--infoS)','var(--info)'],accent:['var(--goldS)','var(--warn)']}[tone]||['var(--alt)','var(--t2)'];return '<div class="stat"><div class="ico" style="background:'+t[0]+'">'+icon+'</div><div class="h2 mut ell">'+val+'</div><div class="cap">'+label+'</div></div>';}
 function chartCard(sales){var series=seriesDaily(sales,14);return '<div class="card"><div class="h3">'+compact(series.reduce(function(s,d){return s+d.v;},0))+'</div><div class="cap" style="margin-bottom:10px">Chiffre — 14 derniers jours</div>'+lineChart(series)+'</div>';}
@@ -340,26 +344,55 @@ function viewTerrain(){
 function viewEquipe(){
   var h='<div class="h1" style="margin-bottom:12px">Équipe</div>';
   if(role()==='responsable'){var team=commerciauxOf(S.me.id);
-    h+='<div class="card">'+(team.length?team.map(function(c){return '<div class="lrow">'+avatar(c.name,40)+'<div class="grow"><div class="semi ell">'+esc(c.name)+'</div><div class="cap">détient '+carriedOf(c.id)+' u.</div></div><span class="badge neu">commercial</span></div>';}).join(''):'<div class="sm center">Aucun commercial rattaché.</div>')+'</div>';
+    h+='<div class="card">'+(team.length?team.map(function(c){return '<div class="lrow">'+avatar(c.name,40)+'<div class="grow"><div class="semi ell">'+esc(c.name)+'</div><div class="cap">Commercial • détient '+carriedOf(c.id)+' u.</div></div></div>';}).join(''):'<div class="sm center">Aucun commercial rattaché.</div>')+'</div>';
     return h;
   }
-  // Boss : formulaire de création
-  var f=S.nu;
-  h+='<div class="card"><div class="h3" style="margin-bottom:10px">Créer un compte</div>'
-    +'<label>Nom complet</label><input id="nu_name" value="'+esc(f.name||'')+'" placeholder="Ex. Awa Traoré" oninput="ZK.nu(\'name\',this.value)">'
-    +'<label class="mut">Email</label><input id="nu_email" type="email" autocapitalize="off" value="'+esc(f.email||'')+'" placeholder="awa@exemple.com" oninput="ZK.nu(\'email\',this.value)">'
-    +'<label class="mut">Mot de passe</label><input id="nu_pw" value="'+esc(f.pw||'')+'" placeholder="au moins 6 caractères" oninput="ZK.nu(\'pw\',this.value)">'
-    +'<label class="mut">Rôle</label><div class="seg">'+[['commercial','Commercial'],['responsable','Responsable'],['boss','Direction']].map(function(x){return '<button class="'+(f.role===x[0]?'on':'')+'" onclick="ZK.nu(\'role\',\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div>';
-  if(f.role==='commercial'){var rs=responsables();h+='<label>Responsable</label>'+(rs.length?'<div class="chips" style="margin-bottom:4px">'+rs.map(function(r){return '<button class="chip '+(f.mgr===r.id?'on':'')+'" onclick="ZK.nu(\'mgr\',\''+r.id+'\')">'+esc(firstName(r.name))+'</button>';}).join('')+'</div>':'<div class="cap">Aucun responsable — créez-en un d\'abord (ou laissez sans).</div>');}
-  h+='<button class="full mut" id="btnCreate" onclick="ZK.createUser()">Créer le compte</button></div>';
-  // Liste
-  var others=S.profiles.filter(function(p){return p.id!==S.me.id;});
-  h+='<div class="h3" style="margin:14px 0 8px">Comptes existants</div>';
-  h+='<div class="card">'+(others.length?others.map(function(p){var rsOpts=responsables().map(function(r){return '<option value="'+r.id+'" '+(p.mgr===r.id?'selected':'')+'>'+esc(firstName(r.name))+'</option>';}).join('');
-    return '<div class="lrow wrap">'+avatar(p.name,38)+'<div class="grow"><div class="semi ell">'+esc(p.name)+'</div><div class="cap">'+esc(p.email||'')+'</div></div>'
-      +'<select style="width:auto;padding:8px 10px" onchange="ZK.setRole(\''+p.id+'\',this.value)">'+['boss','responsable','commercial'].map(function(r){return '<option value="'+r+'" '+(p.role===r?'selected':'')+'>'+roleLabel(r)+'</option>';}).join('')+'</select>'
-      +(p.role==='commercial'?'<select style="width:auto;padding:8px 10px" onchange="ZK.setMgr(\''+p.id+'\',this.value)"><option value="">— resp —</option>'+rsOpts+'</select>':'')+'</div>';
-  }).join(''):'<div class="sm center">Aucun autre compte pour l\'instant.</div>')+'</div>';
+  var pres=isPresident();
+  // --- Bureau de direction (5 fauteuils) ---
+  var bs=bosses(),totalShare=bs.reduce(function(s,b){return s+(b.own||0);},0);
+  h+='<div class="h3" style="margin-bottom:8px">🏛️ Bureau de direction — '+bs.length+'/5 fauteuils</div>';
+  h+='<div class="card">'+bs.map(function(b){var me=b.id===S.me.id;
+    return '<div class="lrow wrap">'+avatar(b.name,40)+'<div class="grow"><div class="semi ell">'+esc(b.name)+(me?' <span class="cap">(vous)</span>':'')+'</div><div class="cap">'+poste(b)+(b.email?' • '+esc(b.email):'')+'</div></div>'
+      +(pres?('<div class="row" style="gap:6px"><input type="number" value="'+(b.own||0)+'" onchange="ZK.setShare(\''+b.id+'\',this.value)" style="width:58px;padding:8px" title="Part de participation %"><span class="cap">%</span>'+(!me?'<button class="rbtn" style="background:var(--dangerS);color:var(--danger)" onclick="ZK.deleteUser(\''+b.id+'\',\''+esc((b.name||'').replace(/\x27/g,''))+'\')">🗑️</button>':'')+'</div>')
+        :'<span class="badge acc">'+(b.own||0)+' %</span>')+'</div>';
+  }).join('')+'<div class="lrow between"><div class="cap">Total des parts</div><div class="semi">'+totalShare+' %</div></div></div>';
+  // --- Création de compte (président uniquement) ---
+  if(pres){var f=S.nu;
+    h+='<div class="card"><div class="h3" style="margin-bottom:10px">➕ Créer un compte</div>'
+      +'<label>Nom complet</label><input id="nu_name" value="'+esc(f.name||'')+'" placeholder="Ex. Sara Koné" oninput="ZK.nu(\'name\',this.value)">'
+      +'<label class="mut">Email</label><input id="nu_email" type="email" autocapitalize="off" value="'+esc(f.email||'')+'" placeholder="sara@exemple.com" oninput="ZK.nu(\'email\',this.value)">'
+      +'<label class="mut">Mot de passe</label><input id="nu_pw" value="'+esc(f.pw||'')+'" placeholder="au moins 6 caractères" oninput="ZK.nu(\'pw\',this.value)">'
+      +'<label class="mut">Poste</label><div class="seg">'+[['commercial','Commercial'],['responsable','Responsable'],['boss','Direction']].map(function(x){return '<button class="'+(f.role===x[0]?'on':'')+'" onclick="ZK.nu(\'role\',\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div>';
+    if(f.role==='commercial'){var rs=responsables();h+='<label>Responsable</label>'+(rs.length?'<div class="chips" style="margin-bottom:4px">'+rs.map(function(r){return '<button class="chip '+(f.mgr===r.id?'on':'')+'" onclick="ZK.nu(\'mgr\',\''+r.id+'\')">'+esc(firstName(r.name))+'</button>';}).join('')+'</div>':'<div class="cap">Aucun responsable — créez-en un d\'abord (ou laissez sans).</div>');}
+    h+='<button class="full mut" id="btnCreate" onclick="ZK.createUser()">Créer le compte</button></div>';
+  } else h+='<div class="card sm center">👑 Seul le président peut créer ou supprimer des comptes.</div>';
+  // --- Équipe commerciale ---
+  var team=responsables().concat(commerciaux());
+  h+='<div class="h3" style="margin:14px 0 8px">👥 Équipe commerciale</div>';
+  h+='<div class="card">'+(team.length?team.map(function(p){var rsOpts=responsables().map(function(r){return '<option value="'+r.id+'" '+(p.mgr===r.id?'selected':'')+'>'+esc(firstName(r.name))+'</option>';}).join('');
+    return '<div class="lrow wrap">'+avatar(p.name,38)+'<div class="grow"><div class="semi ell">'+esc(p.name)+'</div><div class="cap">'+poste(p)+(p.email?' • '+esc(p.email):'')+'</div></div>'
+      +(pres?('<select style="width:auto;padding:8px 10px" onchange="ZK.setRole(\''+p.id+'\',this.value)">'+['boss','responsable','commercial'].map(function(r){return '<option value="'+r+'" '+(p.role===r?'selected':'')+'>'+roleLabel(r)+'</option>';}).join('')+'</select>'
+        +(p.role==='commercial'?'<select style="width:auto;padding:8px 10px" onchange="ZK.setMgr(\''+p.id+'\',this.value)"><option value="">— resp —</option>'+rsOpts+'</select>':'')
+        +'<button class="rbtn" style="background:var(--dangerS);color:var(--danger)" onclick="ZK.deleteUser(\''+p.id+'\',\''+esc((p.name||'').replace(/\x27/g,''))+'\')">🗑️</button>')
+        :'')+'</div>';
+  }).join(''):'<div class="sm center">Aucun membre commercial pour l\'instant.</div>')+'</div>';
+  return h;
+}
+
+/* ---------- Mon profil (chacun modifie son compte) ---------- */
+function viewProfil(){
+  var f=S.prof||(S.prof={});
+  var h='<div class="h1" style="margin-bottom:12px">Mon profil</div>';
+  h+='<div class="card center"><div style="display:flex;justify-content:center;margin-bottom:6px">'+avatar(S.me.name,64)+'</div><div class="h2">'+esc(S.me.name)+'</div><span class="badge '+(S.me.role==='boss'?'acc':S.me.role==='responsable'?'pri':'inf')+'">'+poste(S.me)+'</span></div>';
+  h+='<div class="card"><div class="h3" style="margin-bottom:10px">Modifier mes informations</div>'
+    +'<label>Nom affiché</label><input id="pr_name" value="'+esc(f.name!=null?f.name:S.me.name)+'" oninput="ZK.prof(\'name\',this.value)">'
+    +'<label class="mut">Téléphone</label><input id="pr_phone" value="'+esc(f.phone!=null?f.phone:(S.me.phone||''))+'" placeholder="+225 ..." oninput="ZK.prof(\'phone\',this.value)">'
+    +'<button class="full mut" onclick="ZK.saveProfil()">Enregistrer</button></div>';
+  h+='<div class="card"><div class="h3" style="margin-bottom:10px">Changer mon mot de passe</div>'
+    +'<label>Nouveau mot de passe</label><input id="pr_pw" type="password" placeholder="au moins 6 caractères" value="'+esc(f.pw||'')+'" oninput="ZK.prof(\'pw\',this.value)">'
+    +'<button class="sec full mut" onclick="ZK.changePassword()">Mettre à jour le mot de passe</button></div>';
+  h+='<div class="card sm"><b>Email :</b> '+esc(S.me.email||'—')+'<div class="cap mut">L\'email et le poste sont gérés par le président.</div></div>';
+  h+='<button class="ghost full" onclick="ZK.logout()">Se déconnecter</button>';
   return h;
 }
 
@@ -469,8 +502,13 @@ window.ZK={
     var err=r.error||(r.data&&r.data.error);
     if(err){var msg=(r.error&&r.error.message)||(r.data&&r.data.error)||err;toast('⚠ '+msg);b.textContent='Créer le compte';b.disabled=false;return;}
     toast('Compte créé ✅');S.nu={role:'commercial'};await refresh();},
-  setRole:async function(id,r){var res=await sb.from('profiles').update({role:r}).eq('id',id);if(res.error){toastErr(res.error);return;}toast('Rôle mis à jour');await refresh();},
-  setMgr:async function(id,m){var res=await sb.from('profiles').update({mgr:m||null}).eq('id',id);if(res.error){toastErr(res.error);return;}toast('Rattachement mis à jour');await refresh();}
+  setRole:async function(id,r){var res=await sb.rpc('admin_set_role',{p_target:id,p_role:r});if(res.error){toastErr(res.error);return;}toast('Poste mis à jour');await refresh();},
+  setMgr:async function(id,m){var res=await sb.rpc('admin_set_mgr',{p_target:id,p_mgr:m||null});if(res.error){toastErr(res.error);return;}toast('Rattachement mis à jour');await refresh();},
+  setShare:async function(id,v){var res=await sb.rpc('admin_set_share',{p_target:id,p_own:parseFloat(v)||0});if(res.error){toastErr(res.error);return;}toast('Part mise à jour');await refresh();},
+  deleteUser:async function(id,name){if(!window.confirm('Supprimer définitivement le compte de '+name+' ?'))return;var r=await sb.functions.invoke('delete-user',{body:{id:id}});var err=r.error||(r.data&&r.data.error);if(err){toast('⚠ '+((r.data&&r.data.error)||(r.error&&r.error.message)||err));return;}toast('Compte supprimé');await refresh();},
+  prof:function(k,v){(S.prof||(S.prof={}))[k]=v;},
+  saveProfil:async function(){var f=S.prof||{};var res=await sb.rpc('update_my_profile',{p_name:(f.name!=null?f.name:S.me.name),p_emoji:null,p_phone:(f.phone!=null?f.phone:(S.me.phone||''))});if(res.error){toastErr(res.error);return;}S.prof={};var u=(await sb.auth.getUser()).data.user;var pr=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();if(pr.data)S.me=pr.data;toast('Profil enregistré ✅');await refresh();},
+  changePassword:async function(){var f=S.prof||{};if(!f.pw||f.pw.length<6){toast('Mot de passe : au moins 6 caractères');return;}var res=await sb.auth.updateUser({password:f.pw});if(res.error){toastErr(res.error);return;}f.pw='';toast('Mot de passe mis à jour ✅');render();}
 };
 
 /* ---------- Démarrage ---------- */

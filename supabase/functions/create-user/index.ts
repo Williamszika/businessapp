@@ -38,9 +38,9 @@ Deno.serve(async (req) => {
 
     const admin = createClient(url, service);
     const { data: prof } = await admin
-      .from("profiles").select("role").eq("id", who.user.id).maybeSingle();
-    if (!prof || prof.role !== "boss") {
-      return json({ error: "Réservé à la direction" }, 403);
+      .from("profiles").select("role, sup").eq("id", who.user.id).maybeSingle();
+    if (!prof || prof.role !== "boss" || prof.sup !== true) {
+      return json({ error: "Réservé au président" }, 403);
     }
 
     // 2) Lire les données du nouveau compte.
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     if (cErr) return json({ error: cErr.message }, 400);
 
     const { error: pErr } = await admin.from("profiles").upsert({
-      id: created.user!.id, name, role: roleWanted, mgr,
+      id: created.user!.id, name, role: roleWanted, mgr, email,
     });
     if (pErr) return json({ error: pErr.message }, 400);
 

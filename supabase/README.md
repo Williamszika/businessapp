@@ -22,6 +22,9 @@ le boss attribue du stock → c'est enregistré en ligne → le commercial le vo
    - Copiez tout le contenu de [`schema.sql`](./schema.sql), collez, cliquez **Run**.
    - Puis, dans une nouvelle requête, exécutez aussi [`finances.sql`](./finances.sql)
      (suivi des dépenses, réception de stock, bénéfices).
+   - Puis [`permissions.sql`](./permissions.sql) (postes, président, profils
+     modifiables, création/suppression réservées au président — corrige aussi
+     une faille d'auto-promotion).
    - Si une base existait déjà avant le correctif RLS, exécutez également
      [`fix-rls.sql`](./fix-rls.sql).
    - S'il y a une erreur, envoyez-la moi : je corrige.
