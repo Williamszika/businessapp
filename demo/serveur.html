@@ -185,6 +185,7 @@ function render(){
     case 'vendre':body=viewVendre();break;
     case 'ventes':body=viewVentes();break;
     case 'recu':body=viewRecu(S.sel.saleId);break;
+    case 'membre':body=viewMembre(S.sel.mid);break;
     default:body=viewAccueil();
   }
   var tabs=tabsFor();
@@ -226,7 +227,7 @@ function dashResp(){
   h+='<button class="full" onclick="ZK.go(\'attribuer\')" style="margin-bottom:12px">📤 Répartir à mon équipe</button>';
   h+=chartCard(ts);
   var rank=rankSellers(team);
-  if(rank.length){h+='<div class="card"><div class="h3" style="margin-bottom:8px">Classement de l\'équipe</div>'+rank.map(function(x,i){return '<div class="lrow"><div style="width:18px;text-align:center;font-weight:700;color:'+(i===0?'var(--gold)':'var(--faint)')+'">'+(i+1)+'</div>'+avatar(x.c.name,38)+'<div class="grow"><div class="semi ell">'+esc(x.c.name)+'</div><div class="cap">'+x.count+' ventes • '+carriedOf(x.c.id)+' u. en stock</div></div><div class="semi">'+compact(x.rev)+'</div></div>';}).join('')+'</div>';}
+  if(rank.length){h+='<div class="card"><div class="h3" style="margin-bottom:8px">Classement de l\'équipe</div>'+rank.map(function(x,i){return '<div class="lrow" style="cursor:pointer" onclick="ZK.openMembre(\''+x.c.id+'\')"><div style="width:18px;text-align:center;font-weight:700;color:'+(i===0?'var(--gold)':'var(--faint)')+'">'+(i+1)+'</div>'+avatar(x.c.name,38)+'<div class="grow"><div class="semi ell">'+esc(x.c.name)+' ›</div><div class="cap">'+x.count+' ventes • '+carriedOf(x.c.id)+' u. en stock</div></div><div class="semi">'+compact(x.rev)+'</div></div>';}).join('')+'</div>';}
   var teamIds={};team.forEach(function(c){teamIds[c.id]=1;});teamIds[S.me.id]=1;
   h+=recentSales(S.sales.filter(function(s){return teamIds[s.seller_id];}),'Ventes récentes (moi + équipe)');
   return h;
@@ -354,7 +355,8 @@ function viewTerrain(){
 function viewEquipe(){
   var h='<div class="h1" style="margin-bottom:12px">Équipe</div>';
   if(role()==='responsable'){var team=commerciauxOf(S.me.id);
-    h+='<div class="card">'+(team.length?team.map(function(c){return '<div class="lrow">'+avatar(c.name,40)+'<div class="grow"><div class="semi ell">'+esc(c.name)+'</div><div class="cap">Commercial • détient '+carriedOf(c.id)+' u.</div></div></div>';}).join(''):'<div class="sm center">Aucun commercial rattaché.</div>')+'</div>';
+    h+='<div class="cap" style="margin-bottom:6px">Touchez un commercial pour voir tout son détail.</div>';
+    h+='<div class="card">'+(team.length?team.map(function(c){return '<div class="lrow" style="cursor:pointer" onclick="ZK.openMembre(\''+c.id+'\')">'+avatar(c.name,40)+'<div class="grow"><div class="semi ell">'+esc(c.name)+' ›</div><div class="cap">Commercial • détient '+carriedOf(c.id)+' u. • '+salesOf(c.id).length+' ventes</div></div></div>';}).join(''):'<div class="sm center">Aucun commercial rattaché.</div>')+'</div>';
     return h;
   }
   var pres=isPresident();
@@ -429,6 +431,27 @@ function viewVentes(){
   h+='<div class="card">'+my.slice(0,40).map(function(s){var d=new Date(s.created_at);return '<div class="lrow" style="cursor:pointer" onclick="ZK.openRecu(\''+s.id+'\')"><div class="ico" style="background:var(--successS)">🧾</div><div class="grow"><div class="semi ell">'+esc(s.customer||'Client comptant')+' ›</div><div class="cap">'+esc(s.ref||'')+' • '+d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div></div><div class="semi" style="color:var(--success)">'+money(s.total)+'</div></div>';}).join('')+'</div>';
   return h;
 }
+/* ---------- Fiche d'un membre (détails, activité) ---------- */
+function viewMembre(id){
+  var m=profById(id);
+  if(!m)return backBtn('equipe')+'<div class="card sm center">Membre introuvable.</div>';
+  var canView=role()==='boss'||(role()==='responsable'&&m.mgr===S.me.id);
+  if(!canView)return backBtn('accueil')+'<div class="card sm center">Accès refusé.</div>';
+  var my=salesOf(m.id),hold=holdingListOf(m.id),cr=m.comm||0;
+  var h=backBtn('equipe');
+  h+='<div class="card center"><div style="display:flex;justify-content:center;margin-bottom:6px">'+avatar(m.name,64)+'</div><div class="h2">'+esc(m.name)+'</div><span class="badge inf">'+poste(m)+'</span>'+(m.email?'<div class="cap mut">'+esc(m.email)+'</div>':'')+'</div>';
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('🛒','primary','Ventes',my.length)+stat('💰','success','Chiffre',compact(sumT(my)))+'</div>';
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','info','En stock',carriedOf(m.id)+' u.')+stat('💵','accent','Commission',compact(cr*sumT(my)))+'</div>';
+  if(canAssignTo(m.id))h+='<button class="full" onclick="ZK.assignTo(\''+m.id+'\')" style="margin-bottom:12px">📤 Lui attribuer du stock</button>';
+  h+='<div class="h3" style="margin-bottom:8px">Son stock ('+carriedOf(m.id)+' u.)</div>';
+  if(!hold.length)h+='<div class="card sm center">Ne détient aucun produit.</div>';
+  else h+='<div class="card">'+hold.map(function(x){var low=x.qty<=3;return '<div class="lrow"><div class="grow"><div class="semi ell">'+esc(x.p.emoji||'📦')+' '+esc(x.p.name)+'</div><div class="cap">'+money(x.p.price)+'</div></div><div class="bold">'+x.qty+'</div><span class="badge '+(low?'warn':'ok')+'">'+(low?'faible':'ok')+'</span></div>';}).join('')+'</div>';
+  h+='<div class="h3" style="margin:14px 0 8px">Ses ventes récentes</div>';
+  if(!my.length)h+='<div class="card sm center">Aucune vente pour l\'instant.</div>';
+  else h+='<div class="card">'+my.slice(0,12).map(function(s){var d=new Date(s.created_at);return '<div class="lrow" style="cursor:pointer" onclick="ZK.openRecu(\''+s.id+'\')"><div class="ico" style="background:var(--successS)">🧾</div><div class="grow"><div class="semi ell">'+esc(s.customer||'Client comptant')+' ›</div><div class="cap">'+esc(s.ref||'')+' • '+d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div></div><div class="semi" style="color:var(--success)">'+money(s.total)+'</div></div>';}).join('')+'</div>';
+  return h;
+}
+
 function viewRecu(id){
   var s=null;for(var i=0;i<S.sales.length;i++)if(S.sales[i].id===id)s=S.sales[i];
   var backRoute=(role()==='commercial')?'ventes':'accueil';
@@ -530,6 +553,8 @@ window.ZK={
   delExpense:async function(id){var r=await sb.from('expenses').delete().eq('id',id);if(r.error){toastErr(r.error);return;}toast('Dépense supprimée');await refresh();},
   sell:async function(){var items=[];Object.keys(S.cart).forEach(function(id){if(S.cart[id]>0)items.push({product_id:id,quantity:S.cart[id]});});if(!items.length){toast('Ajoutez un produit');return;}var r=await sb.rpc('record_sale',{p_items:items,p_pay:S.sel.pay||'espèces',p_customer:S.sel.cust||null});if(r.error){toastErr(r.error);return;}S.cart={};S.sel.cust='';await refresh();S.sel.saleId=r.data;S.route='recu';render();toast('Vente enregistrée ✅');},
   openRecu:function(id){S.sel.saleId=id;S.route='recu';render();window.scrollTo(0,0);},
+  openMembre:function(id){S.sel.mid=id;S.route='membre';render();window.scrollTo(0,0);},
+  assignTo:function(id){S.sel.holder=id;S.route='attribuer';render();window.scrollTo(0,0);},
   createUser:async function(){var f=S.nu;var b=document.getElementById('btnCreate');if(!f.email||!f.pw){toast('Email et mot de passe requis');return;}if(f.role==='commercial'&&!f.mgr){toast('Choisissez le responsable de ce commercial');return;}b.textContent='Création…';b.disabled=true;
     var r=await sb.rpc('admin_create_user',{p_email:f.email,p_password:f.pw,p_name:f.name||null,p_role:f.role||'commercial',p_mgr:f.mgr||null});
     if(r.error){toast('⚠ '+(r.error.message||r.error));b.textContent='Créer le compte';b.disabled=false;return;}
