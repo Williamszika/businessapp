@@ -32,7 +32,8 @@ set search_path = public
 as $$
 declare v_name text;
 begin
-  if (select role from public.profiles where id = auth.uid()) <> 'boss' then
+  if auth.uid() is null then raise exception 'Non authentifié'; end if;
+  if (select role from public.profiles where id = auth.uid()) is distinct from 'boss' then
     raise exception 'Réservé à la direction';
   end if;
   if p_qty is null or p_qty <= 0 then raise exception 'Quantité invalide'; end if;
@@ -46,6 +47,7 @@ begin
   values ('Achat — ' || v_name, p_qty * coalesce(p_unit_cost, 0), 'Achat stock', p_product, p_qty, auth.uid());
 end;
 $$;
+revoke execute on function public.receive_stock(uuid, integer, numeric) from public, anon;
 grant execute on function public.receive_stock(uuid, integer, numeric) to authenticated;
 
 -- Synchro temps réel des dépenses
