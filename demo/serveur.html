@@ -8,42 +8,50 @@
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
 <style>
-  :root{--violet:#5A4BE0;--violet2:#7C5CEC;--bg:#0f1017;--surface:#15171f;--alt:#1c1e29;--sunken:#0e0f16;--border:#262a38;--text:#f3f4fa;--t2:#a7acc2;--faint:#6b7189;--ok:#2ec97d;--okS:#0f2a1e;--warn:#fdb022;--warnS:#2c2110;--danger:#f97066;--dangerS:#2c1614;--info:#53b1fd;--infoS:#0e2033;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+  :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
+    --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
+    --text:#141525;--t2:#585D73;--faint:#8B90A6;
+    --success:#0F9F63;--successS:#E6F7EF;--warn:#B45309;--warnS:#FDF0DD;--danger:#E1362B;--dangerS:#FDEBE9;--info:#1E7FE8;--infoS:#E6F1FE;--primS:#ECEAFC;--goldS:#FEF3DC;--shadow:rgba(30,28,70,.12);
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+  @media (prefers-color-scheme:dark){:root{--bg:#0A0B12;--surface:#15171F;--alt:#1C1E29;--sunken:#101119;--border:#262A38;--text:#F3F4FA;--t2:#A7ACC2;--faint:#6B7189;--success:#2EC97D;--successS:#0F2A1E;--warn:#FDB022;--warnS:#2C2110;--danger:#F97066;--dangerS:#2C1614;--info:#53B1FD;--infoS:#0E2033;--primS:#211E3C;--goldS:#2C2413;--shadow:rgba(0,0,0,.5);}}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--text)}
-  #app{max-width:460px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
+  #app{max-width:460px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg)}
   .content{flex:1;overflow-y:auto;padding:16px;padding-bottom:24px}
-  .grad{background:linear-gradient(140deg,#6d5bf0,#8b5cf6 60%,#a855f7);border-radius:18px;padding:18px;color:#fff;margin-bottom:14px}
-  .h1{font-size:22px;font-weight:800;letter-spacing:-.5px}.h2{font-size:18px;font-weight:800}
-  .sm{font-size:13px;color:var(--t2)}.cap{font-size:11px;color:var(--faint)}.bold{font-weight:700}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
+  .h1{font-size:25px;font-weight:800;letter-spacing:-.6px}.h2{font-size:19px;font-weight:800;letter-spacing:-.3px}.h3{font-size:16px;font-weight:700}
+  .sm{font-size:13px;color:var(--t2)}.cap{font-size:11px;color:var(--faint)}.bold{font-weight:700}.semi{font-weight:600}.mut{margin-top:8px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px}
   label{display:block;font-size:12px;font-weight:600;color:var(--t2);margin:0 0 6px}
-  input,select{width:100%;background:var(--sunken);border:1.5px solid var(--border);border-radius:11px;color:var(--text);font-size:15px;padding:12px 13px;outline:none}
+  input,select{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;padding:12px 13px;outline:none}
   input:focus,select:focus{border-color:var(--violet)}
-  button{font-family:inherit;cursor:pointer;border:none;border-radius:11px;font-weight:700;font-size:15px;padding:12px 15px;background:var(--violet);color:#fff}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:12px;font-weight:700;font-size:15px;padding:13px 15px;background:var(--violet);color:#fff}
   button.sec{background:var(--alt);color:var(--text)}button.ghost{background:transparent;border:1.5px solid var(--border);color:var(--text)}
-  button:active{opacity:.85}button:disabled{opacity:.5}
+  button:active{opacity:.85}button:disabled{opacity:.45}
   .full{width:100%}
   .row{display:flex;align-items:center;gap:10px}.between{justify-content:space-between}.wrap{flex-wrap:wrap}
-  .grow{flex:1;min-width:0}.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .grow{flex:1;min-width:0}.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.center{text-align:center}
+  .hero{border-radius:18px;padding:18px;background:linear-gradient(140deg,var(--violet2),var(--violet3) 70%,#A855F7);color:#fff;box-shadow:0 16px 30px -14px rgba(90,75,224,.6);margin-bottom:14px}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:12px;flex:1;min-width:0}
+  .ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:17px}
   .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px}
-  .ok{background:var(--okS);color:var(--ok)}.warn{background:var(--warnS);color:var(--warn)}.dg{background:var(--dangerS);color:var(--danger)}.inf{background:var(--infoS);color:var(--info)}.neu{background:var(--alt);color:var(--t2)}
-  .lrow{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--border)}.lrow:first-child{border-top:none}
+  .ok{background:var(--successS);color:var(--success)}.warn{background:var(--warnS);color:var(--warn)}.dg{background:var(--dangerS);color:var(--danger)}.inf{background:var(--infoS);color:var(--info)}.neu{background:var(--alt);color:var(--t2)}.acc{background:var(--goldS);color:var(--warn)}.pri{background:var(--primS);color:var(--violet)}
+  .lrow{display:flex;align-items:center;gap:11px;padding:11px 0;border-top:1px solid var(--border)}.lrow:first-child{border-top:none}
+  .av{border-radius:50%;display:grid;place-items:center;flex:none;font-weight:700;color:#fff}
   .stepper{display:flex;align-items:center;gap:8px}
-  .rbtn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:18px;padding:0;flex:none}
-  .tabbar{display:flex;border-top:1px solid var(--border);background:var(--surface)}
-  .tab{flex:1;background:none;color:var(--faint);border-radius:0;padding:10px 2px;font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px}
-  .tab.on{color:var(--violet)}
+  .rbtn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:19px;padding:0;flex:none}
+  .track{height:7px;border-radius:999px;background:var(--sunken);overflow:hidden;margin-top:6px}.fill{height:100%;border-radius:999px;background:var(--violet)}
   .chip{display:inline-block;font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:999px;border:1px solid var(--border);color:var(--t2);background:var(--surface);white-space:nowrap}
   .chip.on{background:var(--violet);color:#fff;border-color:var(--violet)}
   .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}.chips::-webkit-scrollbar{display:none}
-  .seg{display:flex;background:var(--sunken);border-radius:10px;padding:3px;gap:3px;margin-bottom:12px}
-  .seg button{flex:1;background:none;color:var(--t2);padding:8px;border-radius:8px;font-size:13px}
-  .seg button.on{background:var(--surface);color:var(--text)}
-  .toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:50;max-width:88%;text-align:center}
+  .seg{display:flex;background:var(--sunken);border-radius:11px;padding:3px;gap:3px;margin-bottom:12px}
+  .seg button{flex:1;background:none;color:var(--t2);padding:8px;border-radius:8px;font-size:13px;font-weight:600}
+  .seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 4px var(--shadow)}
+  .tabbar{display:flex;border-top:1px solid var(--border);background:var(--surface);padding-bottom:env(safe-area-inset-bottom)}
+  .tab{flex:1;background:none;color:var(--faint);border-radius:0;padding:9px 2px 11px;font-size:10.5px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .tab.on{color:var(--violet)}.tab .ti{font-size:19px}
+  .toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:11px 17px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:60;max-width:88%;text-align:center;box-shadow:0 8px 24px var(--shadow)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  .center{text-align:center}.mut{margin-top:8px}.mb0{margin-bottom:0}
-  a{color:#b6a7ff}
+  a{color:var(--violet)}
 </style>
 </head>
 <body>
@@ -56,27 +64,54 @@
 "use strict";
 var app=document.getElementById('app'),toastEl=document.getElementById('toast');
 var cfg=window.ZKA_SUPABASE||{}, sb=null;
-var S={me:null,products:[],holdings:[],profiles:[],movements:[],sales:[],route:'accueil',sel:{},cart:{}};
+var S={me:null,products:[],holdings:[],profiles:[],movements:[],sales:[],route:'accueil',sel:{},cart:{},nu:{role:'commercial'}};
+var DAY=86400000,MO=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 
 function esc(s){return (''+(s==null?'':s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function money(n){return (Math.round(n||0)).toLocaleString('fr-FR')+' FCFA';}
-function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){toastEl.classList.remove('show');},2200);}
-var tt=null;function toastErr(e){toast('⚠ '+((e&&e.message)||e));}
+function grp(x){return (''+x).replace(/\B(?=(\d{3})+(?!\d))/g,' ');}
+function money(n){return grp(Math.round(n||0))+' FCFA';}
+function compact(v){var a=Math.abs(v||0);if(a>=1e6)return grp((v/1e6).toFixed(1))+' M';if(a>=1e4)return grp(Math.round(v/1e3))+' k';return money(v);}
+function initials(n){var p=(''+n).trim().split(/\s+/);return ((p.length===1?p[0].slice(0,2):p[0][0]+p[p.length-1][0])||'?').toUpperCase();}
+var AVC=['#5A4BE0','#F5A623','#12B76A','#2E90FA','#EC4899','#0EA5E9','#8B5CF6','#14B8A6','#F97316'];
+function avColor(k){var h=0;k=''+k;for(var i=0;i<k.length;i++)h=((h<<5)-h+k.charCodeAt(i))|0;return AVC[Math.abs(h)%AVC.length];}
+function avatar(name,size){size=size||42;var c=avColor(name);return '<div class="av" style="width:'+size+'px;height:'+size+'px;background:'+c+';font-size:'+(size*0.36)+'px">'+esc(initials(name))+'</div>';}
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){toastEl.classList.remove('show');},2400);}
+function toastErr(e){toast('⚠ '+((e&&e.message)||e));}
 
 /* ---------- Modèle ---------- */
 function role(){return S.me?S.me.role:null;}
 function prodById(id){for(var i=0;i<S.products.length;i++)if(S.products[i].id===id)return S.products[i];return null;}
 function profById(id){for(var i=0;i<S.profiles.length;i++)if(S.profiles[i].id===id)return S.profiles[i];return null;}
-function heldQty(holderId,pid){for(var i=0;i<S.holdings.length;i++){var h=S.holdings[i];if(h.holder_id===holderId&&h.product_id===pid)return h.qty;}return 0;}
-function holdingListOf(holderId){var out=[];S.holdings.forEach(function(h){if(h.holder_id===holderId&&h.qty>0){var p=prodById(h.product_id);if(p)out.push({p:p,qty:h.qty});}});return out.sort(function(a,b){return a.p.name.localeCompare(b.p.name);});}
-function carriedOf(holderId){var t=0;S.holdings.forEach(function(h){if(h.holder_id===holderId)t+=h.qty;});return t;}
+function heldQty(hid,pid){for(var i=0;i<S.holdings.length;i++){var h=S.holdings[i];if(h.holder_id===hid&&h.product_id===pid)return h.qty;}return 0;}
+function holdingListOf(hid){var out=[];S.holdings.forEach(function(h){if(h.holder_id===hid&&h.qty>0){var p=prodById(h.product_id);if(p)out.push({p:p,qty:h.qty});}});return out.sort(function(a,b){return a.p.name.localeCompare(b.p.name);});}
+function carriedOf(hid){var t=0;S.holdings.forEach(function(h){if(h.holder_id===hid)t+=h.qty;});return t;}
 function commerciauxOf(rid){return S.profiles.filter(function(p){return p.role==='commercial'&&p.mgr===rid;});}
 function responsables(){return S.profiles.filter(function(p){return p.role==='responsable';});}
 function commerciaux(){return S.profiles.filter(function(p){return p.role==='commercial';});}
 function eligibleHolders(){if(role()==='boss')return responsables().concat(commerciaux());if(role()==='responsable')return commerciauxOf(S.me.id);return [];}
 function warehouseTotal(){return S.products.reduce(function(s,p){return s+(p.stock||0);},0);}
+function fieldTotal(){return S.profiles.filter(function(p){return p.role!=='boss';}).reduce(function(s,p){return s+carriedOf(p.id);},0);}
 function fieldTotalOf(pid){var t=0;S.profiles.forEach(function(p){if(p.role!=='boss')t+=heldQty(p.id,pid);});return t;}
 function roleLabel(r){return r==='boss'?'Direction':r==='responsable'?'Responsable':r==='commercial'?'Commercial':'—';}
+function firstName(n){return (''+n).split(' ')[0]||n;}
+
+/* ---------- Analytique (ventes réelles) ---------- */
+function salesOf(id){return S.sales.filter(function(s){return s.seller_id===id;});}
+function salesResp(rid){var ids={};commerciauxOf(rid).forEach(function(c){ids[c.id]=1;});return S.sales.filter(function(s){return ids[s.seller_id];});}
+function scopeSales(){if(role()==='boss')return S.sales;if(role()==='responsable')return salesResp(S.me.id);return salesOf(S.me.id);}
+function sumT(a){return a.reduce(function(s,x){return s+(x.total||0);},0);}
+function startDay(d){var c=new Date(d);c.setHours(0,0,0,0);return c;}
+function salesToday(a){var s=+startDay(new Date()),e=s+DAY;return a.filter(function(x){var t=+new Date(x.created_at);return t>=s&&t<e;});}
+function inLast(a,days){var c=Date.now()-days*DAY;return a.filter(function(s){return +new Date(s.created_at)>=c;});}
+function monthRev(a){var now=new Date(),m=now.getMonth(),y=now.getFullYear();return sumT(a.filter(function(s){var d=new Date(s.created_at);return d.getMonth()===m&&d.getFullYear()===y;}));}
+function seriesDaily(a,days){var today=startDay(new Date()),out=[],idx={};for(var i=days-1;i>=0;i--){var d=new Date(today.getTime()-i*DAY);out.push({label:''+d.getDate(),v:0});idx[+startDay(d)]=out.length-1;}a.forEach(function(s){var t=+startDay(new Date(s.created_at));if(idx[t]!==undefined)out[idx[t]].v+=(s.total||0);});return out;}
+function rankSellers(list){return list.map(function(c){var sl=salesOf(c.id);return {c:c,count:sl.length,rev:sumT(sl)};}).sort(function(a,b){return b.rev-a.rev;});}
+
+function lineChart(series,color){color=color||'#5A4BE0';var W=300,H=120,pt=10,pb=10,ch=H-pt-pb,max=1;series.forEach(function(d){if(d.v>max)max=d.v;});
+  var pts=series.map(function(d,i){return {x:series.length<=1?W/2:i/(series.length-1)*W,y:pt+ch-d.v/max*ch};});
+  function path(pp){if(pp.length<2)return 'M '+(pp[0]?pp[0].x:0)+' '+(pp[0]?pp[0].y:0);var s='M '+pp[0].x+' '+pp[0].y;for(var i=0;i<pp.length-1;i++){var p0=pp[i-1]||pp[i],p1=pp[i],p2=pp[i+1],p3=pp[i+2]||p2;s+=' C '+(p1.x+(p2.x-p0.x)/6)+' '+(p1.y+(p2.y-p0.y)/6)+', '+(p2.x-(p3.x-p1.x)/6)+' '+(p2.y-(p3.y-p1.y)/6)+', '+p2.x+' '+p2.y;}return s;}
+  var lp=path(pts),ap=lp+' L '+pts[pts.length-1].x+' '+H+' L '+pts[0].x+' '+H+' Z',last=pts[pts.length-1];
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="none"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+color+'" stop-opacity="0.25"/><stop offset="1" stop-color="'+color+'" stop-opacity="0.02"/></linearGradient></defs><path d="'+ap+'" fill="url(#g)"/><path d="'+lp+'" fill="none" stroke="'+color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+last.x+'" cy="'+last.y+'" r="3.5" fill="'+color+'"/></svg>';}
 
 /* ---------- Données ---------- */
 async function loadAll(){
@@ -85,17 +120,13 @@ async function loadAll(){
     sb.from('profiles').select('*'),
     sb.from('holdings').select('*'),
     sb.from('movements').select('*').order('at',{ascending:false}).limit(40),
-    sb.from('sales').select('*, sale_items(*)').order('created_at',{ascending:false}).limit(60)
+    sb.from('sales').select('*, sale_items(*)').order('created_at',{ascending:false}).limit(80)
   ]);
-  for(var i=0;i<r.length;i++){ if(r[i].error){ toastErr(r[i].error); } }
-  S.products=r[0].data||[]; S.profiles=r[1].data||[]; S.holdings=r[2].data||[];
-  S.movements=r[3].data||[]; S.sales=r[4].data||[];
+  for(var i=0;i<r.length;i++)if(r[i].error)toastErr(r[i].error);
+  S.products=r[0].data||[]; S.profiles=r[1].data||[]; S.holdings=r[2].data||[]; S.movements=r[3].data||[]; S.sales=r[4].data||[];
 }
 var _rt=null;
-function subscribe(){
-  if(_rt)return;
-  _rt=sb.channel('zka').on('postgres_changes',{event:'*',schema:'public'},function(){ clearTimeout(subscribe._t); subscribe._t=setTimeout(refresh,300); }).subscribe();
-}
+function subscribe(){ if(_rt)return; _rt=sb.channel('zka').on('postgres_changes',{event:'*',schema:'public'},function(){clearTimeout(subscribe._t);subscribe._t=setTimeout(refresh,350);}).subscribe(); }
 async function refresh(){ await loadAll(); render(); }
 
 /* ---------- Auth ---------- */
@@ -107,146 +138,185 @@ async function afterLogin(){
   await loadAll(); subscribe(); S.route='accueil'; render();
 }
 async function doLogin(){
-  var email=(document.getElementById('email').value||'').trim();
-  var pw=document.getElementById('pw').value||'';
-  var b=document.getElementById('btnLogin'); b.textContent='Connexion…'; b.disabled=true;
+  var email=(document.getElementById('email').value||'').trim();var pw=document.getElementById('pw').value||'';
+  var b=document.getElementById('btnLogin');b.textContent='Connexion…';b.disabled=true;
   var res=await sb.auth.signInWithPassword({email:email,password:pw});
-  if(res.error){ renderLogin(res.error.message||'Identifiants incorrects'); return; }
+  if(res.error){renderLogin(res.error.message||'Identifiants incorrects');return;}
   await afterLogin();
 }
 async function logout(){ await sb.auth.signOut(); S.me=null; renderLogin(); }
 
-/* ---------- Écrans ---------- */
+/* ---------- Écrans de base ---------- */
 function renderLogin(err){
-  app.innerHTML='<div class="content"><div class="grad"><div class="cap" style="opacity:.85">ZKA</div><div class="h1">Connexion</div><div class="sm" style="color:#fff;opacity:.9">Espace direction & équipe</div></div>'
+  app.innerHTML='<div class="content"><div class="hero"><div class="cap" style="color:#fff;opacity:.85">ZKA</div><div class="h1">Connexion</div><div class="sm" style="color:#fff;opacity:.9">Espace direction & équipe</div></div>'
    +'<div class="card">'+(err?'<div class="badge dg" style="margin-bottom:10px">'+esc(err)+'</div>':'')
    +'<label>Email</label><input id="email" type="email" autocapitalize="off" placeholder="vous@exemple.com">'
    +'<label style="margin-top:12px">Mot de passe</label><input id="pw" type="password" placeholder="••••••••">'
-   +'<button class="full" style="margin-top:16px" id="btnLogin">Se connecter</button>'
-   +'<div class="cap mut">Comptes créés par la direction (Supabase → Authentication).</div></div></div>';
+   +'<button class="full" style="margin-top:16px" id="btnLogin">Se connecter</button></div></div>';
   document.getElementById('btnLogin').onclick=doLogin;
   document.getElementById('pw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 }
-function renderFatal(msg){ app.innerHTML='<div class="content"><div class="card"><span class="badge dg">Erreur</span><div class="sm mut">'+esc(msg)+'</div><button class="ghost full mut" onclick="ZK.logout()">Se déconnecter</button></div></div>'; }
+function renderFatal(msg){app.innerHTML='<div class="content"><div class="card"><span class="badge dg">Erreur</span><div class="sm mut">'+esc(msg)+'</div><button class="ghost full mut" onclick="ZK.logout()">Se déconnecter</button></div></div>';}
 
-function tabsFor(){ if(role()==='boss')return [['accueil','Entrepôt'],['attribuer','Attribuer'],['terrain','Terrain'],['equipe','Équipe']];
-  if(role()==='responsable')return [['accueil','Ma réserve'],['attribuer','Attribuer'],['equipe','Équipe']];
-  return [['accueil','Mon stock'],['vendre','Vendre'],['ventes','Ventes']]; }
-
+function tabsFor(){
+  if(role()==='boss')return [['accueil','🏠','Accueil'],['entrepot','📦','Entrepôt'],['attribuer','📤','Attribuer'],['terrain','🗺️','Terrain'],['equipe','👥','Équipe']];
+  if(role()==='responsable')return [['accueil','🏠','Accueil'],['attribuer','📤','Attribuer'],['equipe','👥','Équipe']];
+  return [['accueil','🏠','Accueil'],['stock','📦','Mon stock'],['vendre','🛒','Vendre'],['ventes','🧾','Ventes']];
+}
 function render(){
-  if(!S.me){ renderLogin(); return; }
+  if(!S.me){renderLogin();return;}
   var body;
   switch(S.route){
-    case 'attribuer': body=viewAttribuer(); break;
-    case 'terrain': body=viewTerrain(); break;
-    case 'equipe': body=viewEquipe(); break;
-    case 'vendre': body=viewVendre(); break;
-    case 'ventes': body=viewVentes(); break;
-    default: body=viewAccueil();
+    case 'entrepot':body=viewEntrepot();break;
+    case 'attribuer':body=viewAttribuer();break;
+    case 'terrain':body=viewTerrain();break;
+    case 'equipe':body=viewEquipe();break;
+    case 'stock':body=viewMonStock();break;
+    case 'vendre':body=viewVendre();break;
+    case 'ventes':body=viewVentes();break;
+    default:body=viewAccueil();
   }
   var tabs=tabsFor();
-  var bar='<div class="tabbar">'+tabs.map(function(t){return '<button class="tab '+(S.route===t[0]?'on':'')+'" onclick="ZK.go(\''+t[0]+'\')">'+t[1]+'</button>';}).join('')+'</div>';
+  var bar='<div class="tabbar">'+tabs.map(function(t){return '<button class="tab '+(S.route===t[0]?'on':'')+'" onclick="ZK.go(\''+t[0]+'\')"><span class="ti">'+t[1]+'</span><span>'+t[2]+'</span></button>';}).join('')+'</div>';
   app.innerHTML='<div class="content">'+body+'</div>'+bar;
 }
+function topRow(){return '<div class="row between" style="margin-bottom:12px"><div><div class="sm">'+greet()+',</div><div class="h2 ell">'+esc(S.me.name)+'</div></div><button class="ghost" style="padding:9px 12px" onclick="ZK.logout()">Quitter</button></div>';}
+function greet(){var h=new Date().getHours();return h<12?'Bonjour':h<18?'Bon après-midi':'Bonsoir';}
+function stat(icon,tone,label,val){var t={success:['var(--successS)','var(--success)'],primary:['var(--primS)','var(--violet)'],info:['var(--infoS)','var(--info)'],accent:['var(--goldS)','var(--warn)']}[tone]||['var(--alt)','var(--t2)'];return '<div class="stat"><div class="ico" style="background:'+t[0]+'">'+icon+'</div><div class="h2 mut ell">'+val+'</div><div class="cap">'+label+'</div></div>';}
+function chartCard(sales){var series=seriesDaily(sales,14);return '<div class="card"><div class="h3">'+compact(series.reduce(function(s,d){return s+d.v;},0))+'</div><div class="cap" style="margin-bottom:10px">Chiffre — 14 derniers jours</div>'+lineChart(series)+'</div>';}
 
-function topbar(title,sub){return '<div class="grad"><div class="row between"><div><div class="cap" style="opacity:.85">'+esc(sub||roleLabel(role()))+'</div><div class="h1">'+esc(title)+'</div></div><button class="ghost" style="border-color:rgba(255,255,255,.4);color:#fff;padding:8px 12px" onclick="ZK.logout()">Quitter</button></div><div class="sm" style="color:#fff;opacity:.9;margin-top:6px">'+esc(S.me.name)+' 🟢 en direct</div></div>';}
+/* ---------- Accueil / Tableau de bord ---------- */
+function viewAccueil(){return role()==='boss'?dashBoss():role()==='responsable'?dashResp():dashCom();}
 
-/* ----- Accueil selon rôle ----- */
-function viewAccueil(){ if(role()==='boss')return viewEntrepot(); return viewMonStock(); }
+function dashBoss(){
+  var all=S.sales,today=salesToday(all),h=topRow();
+  h+='<div class="hero"><div class="sm" style="color:#fff;opacity:.9">Chiffre global ce mois</div><div style="font-size:31px;font-weight:800;letter-spacing:-1px">'+money(monthRev(all))+'</div>'
+    +'<div class="row" style="gap:20px;margin-top:12px"><div><div class="cap" style="color:#fff;opacity:.8">Aujourd\'hui</div><div class="bold">'+compact(sumT(today))+'</div></div><div><div class="cap" style="color:#fff;opacity:.8">Ventes 30j</div><div class="bold">'+inLast(all,30).length+'</div></div></div></div>';
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','primary','Produits',S.products.length)+stat('🗺️','info','Stock terrain',fieldTotal()+' u.')+'</div>';
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('💰','success','Chiffre 30j',compact(sumT(inLast(all,30))))+stat('👥','accent','Équipe',responsables().length+commerciaux().length)+'</div>';
+  h+='<button class="full" onclick="ZK.go(\'attribuer\')" style="margin-bottom:12px">📤 Attribuer du stock</button>';
+  h+=chartCard(all);
+  var rs=responsables();
+  if(rs.length){h+='<div class="card"><div class="cap" style="text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:6px">Stock terrain par responsable</div>'+rs.map(function(rp){var st=carriedOf(rp.id)+commerciauxOf(rp.id).reduce(function(s,c){return s+carriedOf(c.id);},0);var mx=Math.max(1,fieldTotal());return '<div style="margin-top:10px"><div class="row between"><div class="sm semi">'+esc(rp.name)+'</div><div class="sm semi">'+st+' u.</div></div><div class="track"><div class="fill" style="width:'+(st/mx*100)+'%"></div></div></div>';}).join('')+'</div>';}
+  h+=recentSales(all,'Ventes récentes');
+  return h;
+}
+function dashResp(){
+  var team=commerciauxOf(S.me.id),ts=salesResp(S.me.id),h=topRow();
+  h+='<div class="hero"><div class="sm" style="color:#fff;opacity:.9">Chiffre de mon équipe ce mois</div><div style="font-size:30px;font-weight:800;letter-spacing:-1px">'+money(monthRev(ts))+'</div>'
+    +'<div class="row" style="gap:20px;margin-top:12px"><div><div class="cap" style="color:#fff;opacity:.8">Aujourd\'hui</div><div class="bold">'+compact(sumT(salesToday(ts)))+'</div></div><div><div class="cap" style="color:#fff;opacity:.8">Commerciaux</div><div class="bold">'+team.length+'</div></div></div></div>';
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('🛒','primary','Ventes 30j',inLast(ts,30).length)+stat('📦','info','Ma réserve',carriedOf(S.me.id)+' u.')+'</div>';
+  h+='<button class="full" onclick="ZK.go(\'attribuer\')" style="margin-bottom:12px">📤 Répartir à mon équipe</button>';
+  h+=chartCard(ts);
+  var rank=rankSellers(team);
+  if(rank.length){h+='<div class="card"><div class="h3" style="margin-bottom:8px">Classement de l\'équipe</div>'+rank.map(function(x,i){return '<div class="lrow"><div style="width:18px;text-align:center;font-weight:700;color:'+(i===0?'var(--gold)':'var(--faint)')+'">'+(i+1)+'</div>'+avatar(x.c.name,38)+'<div class="grow"><div class="semi ell">'+esc(x.c.name)+'</div><div class="cap">'+x.count+' ventes • '+carriedOf(x.c.id)+' u. en stock</div></div><div class="semi">'+compact(x.rev)+'</div></div>';}).join('')+'</div>';}
+  return h;
+}
+function dashCom(){
+  var my=salesOf(S.me.id),mine=holdingListOf(S.me.id),h=topRow();
+  h+='<div class="hero"><div class="sm" style="color:#fff;opacity:.9">Mon chiffre ce mois</div><div style="font-size:32px;font-weight:800;letter-spacing:-1px">'+money(monthRev(my))+'</div>'
+    +'<div class="row" style="gap:20px;margin-top:12px"><div><div class="cap" style="color:#fff;opacity:.8">Aujourd\'hui</div><div class="bold">'+compact(sumT(salesToday(my)))+'</div></div><div><div class="cap" style="color:#fff;opacity:.8">Ventes 30j</div><div class="bold">'+inLast(my,30).length+'</div></div></div></div>';
+  h+='<button class="full" onclick="ZK.go(\'vendre\')" style="margin-bottom:12px">🛒 Enregistrer une vente</button>';
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','primary','Mon stock',carriedOf(S.me.id)+' u.')+stat('💰','success','Chiffre 30j',compact(sumT(inLast(my,30))))+'</div>';
+  var lows=mine.filter(function(x){return x.qty<=3;}).length;
+  h+='<div class="card" onclick="ZK.go(\'stock\')"><div class="row between"><div class="row" style="gap:10px">📦<div><div class="semi">Mon stock terrain</div><div class="cap">'+mine.length+' produit(s)'+(lows?' • '+lows+' faible(s)':'')+'</div></div></div><div class="h2">'+carriedOf(S.me.id)+'</div></div></div>';
+  h+=chartCard(my);
+  h+=recentSales(my,'Mes ventes récentes');
+  return h;
+}
+function recentSales(a,title){var rec=a.slice(0,5);if(!rec.length)return '<div class="card sm center">Aucune vente pour l\'instant.</div>';
+  return '<div class="card"><div class="h3" style="margin-bottom:8px">'+title+'</div>'+rec.map(function(s){var seller=profById(s.seller_id),d=new Date(s.created_at);return '<div class="lrow"><div class="ico" style="background:var(--successS)">🧾</div><div class="grow"><div class="semi ell">'+esc(s.customer||'Client comptant')+'</div><div class="cap">'+(role()!=='commercial'&&seller?esc(firstName(seller.name))+' • ':'')+d.toLocaleDateString('fr-FR')+'</div></div><div class="semi" style="color:var(--success)">'+money(s.total)+'</div></div>';}).join('')+'</div>';}
 
-/* Boss : entrepôt central */
+/* ---------- Entrepôt (boss) ---------- */
 function viewEntrepot(){
-  var h=topbar('Entrepôt central','Direction');
-  h+='<div class="card row"><div class="grow"><div class="h2">'+S.products.length+'</div><div class="cap">produits</div></div><div class="grow"><div class="h2">'+warehouseTotal()+'</div><div class="cap">unités entrepôt</div></div><div class="grow"><div class="h2">'+commerciaux().concat(responsables()).reduce(function(s,p){return s+carriedOf(p.id);},0)+'</div><div class="cap">sur le terrain</div></div></div>';
-  h+='<button class="full" onclick="ZK.go(\'attribuer\')">📦 Attribuer du stock à un membre</button>';
-  h+='<div class="card mut"><label>Ajouter un produit à l\'entrepôt</label><input id="np_name" placeholder="Nom du produit"><div class="row mut"><input id="np_price" type="number" placeholder="Prix (FCFA)"><input id="np_stock" type="number" placeholder="Stock"></div><button class="sec full mut" onclick="ZK.addProduct()">Ajouter le produit</button></div>';
-  h+='<div class="h2 mut" style="margin:14px 0 8px">Produits</div>';
-  h+='<div class="card">'+S.products.map(function(p){var out=p.stock===0,low=p.stock<=(p.reorder||0);return '<div class="lrow"><div class="grow"><div class="bold ell">'+esc(p.emoji||'')+' '+esc(p.name)+'</div><div class="cap">'+esc(p.cat)+' • terrain : '+fieldTotalOf(p.id)+'</div></div><div class="stepper"><button class="rbtn sec" onclick="ZK.adjust(\''+p.id+'\',-1)">−</button><div class="bold" style="min-width:60px;text-align:center">'+p.stock+'</div><button class="rbtn" onclick="ZK.adjust(\''+p.id+'\',1)">+</button></div></div>';}).join('')+'</div>';
+  var h='<div class="h1" style="margin-bottom:12px">Entrepôt central</div>';
+  h+='<div class="card row">'+miniStat('Produits',S.products.length)+miniStat('Unités',warehouseTotal())+miniStat('Terrain',fieldTotal())+'</div>';
+  h+='<div class="card"><label>Ajouter un produit</label><input id="np_name" placeholder="Nom du produit"><div class="row mut"><input id="np_price" type="number" placeholder="Prix"><input id="np_stock" type="number" placeholder="Stock"></div><button class="sec full mut" onclick="ZK.addProduct()">Ajouter</button></div>';
+  h+='<div class="card">'+S.products.map(function(p){return '<div class="lrow"><div class="grow"><div class="semi ell">'+esc(p.emoji||'📦')+' '+esc(p.name)+'</div><div class="cap">'+esc(p.cat)+' • '+money(p.price)+' • terrain '+fieldTotalOf(p.id)+'</div></div><div class="stepper"><button class="rbtn sec" onclick="ZK.adjust(\''+p.id+'\',-1)">−</button><div class="bold" style="min-width:52px;text-align:center">'+p.stock+'</div><button class="rbtn" onclick="ZK.adjust(\''+p.id+'\',1)">+</button></div></div>';}).join('')+'</div>';
   return h;
 }
+function miniStat(l,v){return '<div class="grow center"><div class="h2">'+v+'</div><div class="cap">'+l+'</div></div>';}
 
-/* Responsable/Commercial : mon stock */
+/* ---------- Mon stock (resp/com) ---------- */
 function viewMonStock(){
-  var mine=holdingListOf(S.me.id),lows=mine.filter(function(x){return x.qty<=3;}).length;
-  var h=topbar(role()==='responsable'?'Ma réserve':'Mon stock',roleLabel(role()));
-  h+='<div class="card row"><div class="grow"><div class="h2">'+carriedOf(S.me.id)+'</div><div class="cap">unités détenues</div></div><div class="grow"><div class="h2">'+mine.length+'</div><div class="cap">références</div></div><div class="grow"><div class="h2">'+money(mine.reduce(function(s,x){return s+x.qty*x.p.price;},0))+'</div><div class="cap">valeur</div></div></div>';
-  if(role()==='responsable')h+='<button class="full" onclick="ZK.go(\'attribuer\')">📦 Répartir à mon équipe</button>';
-  if(lows>0)h+='<div class="card" style="background:var(--warnS);border-color:transparent"><span class="badge warn">⚠ '+lows+' produit(s) en quantité faible</span></div>';
-  h+='<div class="h2 mut" style="margin:14px 0 8px">Ce que je détiens</div>';
-  if(!mine.length)h+='<div class="card sm center">Aucun stock ne vous a été attribué pour l\'instant.</div>';
-  else h+='<div class="card">'+mine.map(function(x){var low=x.qty<=3;return '<div class="lrow"><div class="grow"><div class="bold ell">'+esc(x.p.emoji||'')+' '+esc(x.p.name)+'</div><div class="cap">'+esc(x.p.cat)+' • '+money(x.p.price)+'</div></div><div class="bold">'+x.qty+' '+esc(x.p.unit||'')+'</div><span class="badge '+(low?'warn':'ok')+'">'+(low?'faible':'ok')+'</span></div>';}).join('')+'</div>';
+  var mine=holdingListOf(S.me.id);
+  var h='<div class="h1" style="margin-bottom:12px">'+(role()==='responsable'?'Ma réserve':'Mon stock')+'</div>';
+  h+='<div class="card row">'+miniStat('Unités',carriedOf(S.me.id))+miniStat('Références',mine.length)+miniStat('Valeur',compact(mine.reduce(function(s,x){return s+x.qty*x.p.price;},0)))+'</div>';
+  if(!mine.length)h+='<div class="card sm center">Aucun stock ne vous a été attribué.</div>';
+  else h+='<div class="card">'+mine.map(function(x){var low=x.qty<=3;return '<div class="lrow">'+avatar(x.p.name,40)+'<div class="grow"><div class="semi ell">'+esc(x.p.name)+'</div><div class="cap">'+esc(x.p.cat)+' • '+money(x.p.price)+'</div></div><div class="bold">'+x.qty+'</div><span class="badge '+(low?'warn':'ok')+'">'+(low?'faible':'ok')+'</span></div>';}).join('')+'</div>';
   return h;
 }
 
-/* Attribuer (boss & responsable) */
+/* ---------- Attribuer ---------- */
 function viewAttribuer(){
   var holders=eligibleHolders();
-  var h=topbar('Attribuer du stock','Source : '+(role()==='boss'?'entrepôt central':'ma réserve'));
-  if(!holders.length){ return h+'<div class="card sm center">Aucun destinataire. '+(role()==='responsable'?'Aucun commercial n\'est rattaché à vous.':'Créez d\'abord des membres dans l\'onglet Équipe.')+'</div>'; }
-  var hid=S.sel.holder; if(!hid||!holders.some(function(x){return x.id===hid;}))hid=holders[0].id; S.sel.holder=hid;
+  var h='<div class="h1" style="margin-bottom:4px">Attribuer du stock</div><div class="sm" style="margin-bottom:12px">Source : '+(role()==='boss'?'entrepôt central':'ma réserve')+'</div>';
+  if(!holders.length)return h+'<div class="card sm center">Aucun destinataire disponible. '+(role()==='responsable'?'Aucun commercial rattaché.':'Créez des membres dans l\'onglet Équipe.')+'</div>';
+  var hid=S.sel.holder;if(!hid||!holders.some(function(x){return x.id===hid;}))hid=holders[0].id;S.sel.holder=hid;
   var holder=profById(hid);
-  h+='<label>Destinataire</label><div class="chips mut" style="margin-bottom:12px">'+holders.map(function(a){return '<button class="chip '+(a.id===hid?'on':'')+'" onclick="ZK.selHolder(\''+a.id+'\')">'+esc((a.name||'').split(' ')[0]||a.name)+' · '+(a.role==='responsable'?'resp':'com')+'</button>';}).join('')+'</div>';
-  h+='<div class="card row between"><div><div class="bold">'+esc(holder.name)+'</div><div class="cap">'+roleLabel(holder.role)+' • détient '+carriedOf(hid)+' u.</div></div><span class="badge inf">+ attribuer / − reprendre</span></div>';
-  var srcQty=function(pid){return role()==='boss'?(prodById(pid)||{}).stock||0:heldQty(S.me.id,pid);};
-  h+='<div class="card">'+S.products.map(function(p){var avail=srcQty(p.id),held=heldQty(hid,p.id);
-    return '<div class="lrow"><div class="grow"><div class="bold ell">'+esc(p.emoji||'')+' '+esc(p.name)+'</div><div class="cap">'+(role()==='boss'?'entrepôt':'ma réserve')+' : '+avail+' • détenu : '+held+'</div></div><div class="stepper"><button class="rbtn sec" '+(held<=0?'disabled':'')+' onclick="ZK.assign(\''+hid+'\',\''+p.id+'\',-1)">−</button><div class="bold" style="min-width:26px;text-align:center">'+held+'</div><button class="rbtn" '+(avail<=0?'disabled':'')+' onclick="ZK.assign(\''+hid+'\',\''+p.id+'\',1)">+</button></div></div>';}).join('')+'</div>';
+  h+='<div class="chips" style="margin-bottom:12px">'+holders.map(function(a){return '<button class="chip '+(a.id===hid?'on':'')+'" onclick="ZK.selHolder(\''+a.id+'\')">'+esc(firstName(a.name))+' · '+(a.role==='responsable'?'resp':'com')+'</button>';}).join('')+'</div>';
+  h+='<div class="card row between"><div class="row" style="gap:10px">'+avatar(holder.name,40)+'<div><div class="semi">'+esc(holder.name)+'</div><div class="cap">'+roleLabel(holder.role)+' • détient '+carriedOf(hid)+' u.</div></div></div><span class="badge pri">+ / −</span></div>';
+  var srcQty=function(pid){return role()==='boss'?((prodById(pid)||{}).stock||0):heldQty(S.me.id,pid);};
+  h+='<div class="card">'+S.products.map(function(p){var avail=srcQty(p.id),held=heldQty(hid,p.id);return '<div class="lrow"><div class="grow"><div class="semi ell">'+esc(p.emoji||'📦')+' '+esc(p.name)+'</div><div class="cap">'+(role()==='boss'?'entrepôt':'ma réserve')+' : '+avail+' • détenu : '+held+'</div></div><div class="stepper"><button class="rbtn sec" '+(held<=0?'disabled':'')+' onclick="ZK.assign(\''+hid+'\',\''+p.id+'\',-1)">−</button><div class="bold" style="min-width:24px;text-align:center">'+held+'</div><button class="rbtn" '+(avail<=0?'disabled':'')+' onclick="ZK.assign(\''+hid+'\',\''+p.id+'\',1)">+</button></div></div>';}).join('')+'</div>';
   return h;
 }
 
-/* Terrain (boss) : qui détient quoi */
+/* ---------- Terrain (boss) ---------- */
 function viewTerrain(){
-  var h=topbar('Stock sur le terrain','Vue direction');
+  var h='<div class="h1" style="margin-bottom:12px">Stock sur le terrain</div>';
   var all=responsables().concat(commerciaux());
   if(!all.length)return h+'<div class="card sm center">Aucun membre. Créez-les dans l\'onglet Équipe.</div>';
-  all.forEach(function(a){var list=holdingListOf(a.id);
-    h+='<div class="card"><div class="row between" onclick="ZK.selHolderGo(\''+a.id+'\')"><div class="bold">'+esc(a.name)+' <span class="cap">('+roleLabel(a.role)+')</span></div><span class="badge neu">'+carriedOf(a.id)+' u.</span></div>'
-     +(list.length?'<div style="margin-top:6px">'+list.map(function(x){return '<div class="lrow"><div class="grow sm">'+esc(x.p.name)+'</div><div class="bold">'+x.qty+'</div></div>';}).join('')+'</div>':'<div class="cap mut">rien détenu</div>')+'</div>';
-  });
+  all.forEach(function(a){var list=holdingListOf(a.id);h+='<div class="card"><div class="row between"><div class="row" style="gap:10px">'+avatar(a.name,36)+'<div><div class="semi">'+esc(a.name)+'</div><div class="cap">'+roleLabel(a.role)+'</div></div></div><span class="badge neu">'+carriedOf(a.id)+' u.</span></div>'+(list.length?'<div style="margin-top:4px">'+list.map(function(x){return '<div class="lrow"><div class="grow sm">'+esc(x.p.name)+'</div><div class="semi">'+x.qty+'</div></div>';}).join('')+'</div>':'<div class="cap mut">rien détenu</div>')+'</div>';});
   return h;
 }
 
-/* Équipe (boss) : définir rôles & rattachements */
+/* ---------- Équipe + création de comptes (boss) ---------- */
 function viewEquipe(){
-  var h=topbar('Équipe',role()==='boss'?'Direction':'Responsable');
-  if(role()==='responsable'){ var team=commerciauxOf(S.me.id);
-    h+='<div class="card sm">Vos commerciaux. Pour en ajouter, contactez la direction.</div>';
-    h+='<div class="card">'+(team.length?team.map(function(c){return '<div class="lrow"><div class="grow"><div class="bold">'+esc(c.name)+'</div><div class="cap">détient '+carriedOf(c.id)+' u.</div></div><span class="badge neu">commercial</span></div>';}).join(''):'<div class="sm center">Aucun commercial rattaché.</div>')+'</div>';
+  var h='<div class="h1" style="margin-bottom:12px">Équipe</div>';
+  if(role()==='responsable'){var team=commerciauxOf(S.me.id);
+    h+='<div class="card">'+(team.length?team.map(function(c){return '<div class="lrow">'+avatar(c.name,40)+'<div class="grow"><div class="semi ell">'+esc(c.name)+'</div><div class="cap">détient '+carriedOf(c.id)+' u.</div></div><span class="badge neu">commercial</span></div>';}).join(''):'<div class="sm center">Aucun commercial rattaché.</div>')+'</div>';
     return h;
   }
-  h+='<div class="card sm">Créez les comptes (email + mot de passe) dans <b>Supabase → Authentication</b>. Ils apparaissent ici en « commercial » ; réglez ensuite leur rôle et, pour un commercial, son responsable.</div>';
+  // Boss : formulaire de création
+  var f=S.nu;
+  h+='<div class="card"><div class="h3" style="margin-bottom:10px">Créer un compte</div>'
+    +'<label>Nom complet</label><input id="nu_name" value="'+esc(f.name||'')+'" placeholder="Ex. Awa Traoré" oninput="ZK.nu(\'name\',this.value)">'
+    +'<label class="mut">Email</label><input id="nu_email" type="email" autocapitalize="off" value="'+esc(f.email||'')+'" placeholder="awa@exemple.com" oninput="ZK.nu(\'email\',this.value)">'
+    +'<label class="mut">Mot de passe</label><input id="nu_pw" value="'+esc(f.pw||'')+'" placeholder="au moins 6 caractères" oninput="ZK.nu(\'pw\',this.value)">'
+    +'<label class="mut">Rôle</label><div class="seg">'+[['commercial','Commercial'],['responsable','Responsable'],['boss','Direction']].map(function(x){return '<button class="'+(f.role===x[0]?'on':'')+'" onclick="ZK.nu(\'role\',\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div>';
+  if(f.role==='commercial'){var rs=responsables();h+='<label>Responsable</label>'+(rs.length?'<div class="chips" style="margin-bottom:4px">'+rs.map(function(r){return '<button class="chip '+(f.mgr===r.id?'on':'')+'" onclick="ZK.nu(\'mgr\',\''+r.id+'\')">'+esc(firstName(r.name))+'</button>';}).join('')+'</div>':'<div class="cap">Aucun responsable — créez-en un d\'abord (ou laissez sans).</div>');}
+  h+='<button class="full mut" id="btnCreate" onclick="ZK.createUser()">Créer le compte</button></div>';
+  // Liste
   var others=S.profiles.filter(function(p){return p.id!==S.me.id;});
-  h+='<div class="card">'+(others.length?others.map(function(p){
-    var mgrOpts=responsables().map(function(r){return '<option value="'+r.id+'" '+(p.mgr===r.id?'selected':'')+'>'+esc((r.name||'').split(' ')[0])+'</option>';}).join('');
-    return '<div class="lrow" style="flex-wrap:wrap"><div class="grow"><div class="bold ell">'+esc(p.name)+'</div><div class="cap">'+esc(p.email||'')+'</div></div>'
-      +'<select style="width:auto;padding:8px" onchange="ZK.setRole(\''+p.id+'\',this.value)">'+['boss','responsable','commercial'].map(function(r){return '<option value="'+r+'" '+(p.role===r?'selected':'')+'>'+roleLabel(r)+'</option>';}).join('')+'</select>'
-      +(p.role==='commercial'?'<select style="width:auto;padding:8px" onchange="ZK.setMgr(\''+p.id+'\',this.value)"><option value="">— resp. —</option>'+mgrOpts+'</select>':'')
-      +'</div>';
-  }).join(''):'<div class="sm center">Aucun autre compte. Créez-les dans Supabase → Authentication.</div>')+'</div>';
+  h+='<div class="h3" style="margin:14px 0 8px">Comptes existants</div>';
+  h+='<div class="card">'+(others.length?others.map(function(p){var rsOpts=responsables().map(function(r){return '<option value="'+r.id+'" '+(p.mgr===r.id?'selected':'')+'>'+esc(firstName(r.name))+'</option>';}).join('');
+    return '<div class="lrow wrap">'+avatar(p.name,38)+'<div class="grow"><div class="semi ell">'+esc(p.name)+'</div><div class="cap">'+esc(p.email||'')+'</div></div>'
+      +'<select style="width:auto;padding:8px 10px" onchange="ZK.setRole(\''+p.id+'\',this.value)">'+['boss','responsable','commercial'].map(function(r){return '<option value="'+r+'" '+(p.role===r?'selected':'')+'>'+roleLabel(r)+'</option>';}).join('')+'</select>'
+      +(p.role==='commercial'?'<select style="width:auto;padding:8px 10px" onchange="ZK.setMgr(\''+p.id+'\',this.value)"><option value="">— resp —</option>'+rsOpts+'</select>':'')+'</div>';
+  }).join(''):'<div class="sm center">Aucun autre compte pour l\'instant.</div>')+'</div>';
   return h;
 }
 
-/* Vendre (commercial) */
+/* ---------- Vendre (commercial) ---------- */
 function viewVendre(){
   var mine=holdingListOf(S.me.id);
   var items=[];Object.keys(S.cart).forEach(function(id){if(S.cart[id]>0){var p=prodById(id);if(p)items.push({p:p,q:S.cart[id]});}});
   var total=items.reduce(function(s,x){return s+x.q*x.p.price;},0),count=items.reduce(function(s,x){return s+x.q;},0);
-  var h=topbar('Enregistrer une vente','Commercial');
+  var h='<div class="h1" style="margin-bottom:12px">Nouvelle vente</div>';
   if(!mine.length)return h+'<div class="card sm center">Vous ne détenez aucun stock à vendre. Demandez à votre responsable.</div>';
-  h+='<div class="card">'+mine.map(function(x){var q=S.cart[x.p.id]||0,atMax=q>=x.qty;return '<div class="lrow"><div class="grow"><div class="bold ell">'+esc(x.p.emoji||'')+' '+esc(x.p.name)+'</div><div class="cap">'+money(x.p.price)+' • j\'en ai '+x.qty+'</div></div><div class="stepper"><button class="rbtn sec" '+(q<=0?'disabled':'')+' onclick="ZK.cart(\''+x.p.id+'\',-1)">−</button><div class="bold" style="min-width:24px;text-align:center">'+q+'</div><button class="rbtn" '+(atMax?'disabled':'')+' onclick="ZK.cart(\''+x.p.id+'\',1)">+</button></div></div>';}).join('')+'</div>';
+  h+='<div class="card">'+mine.map(function(x){var q=S.cart[x.p.id]||0,atMax=q>=x.qty;return '<div class="lrow">'+avatar(x.p.name,38)+'<div class="grow"><div class="semi ell">'+esc(x.p.name)+'</div><div class="cap">'+money(x.p.price)+' • j\'en ai '+x.qty+'</div></div><div class="stepper"><button class="rbtn sec" '+(q<=0?'disabled':'')+' onclick="ZK.cart(\''+x.p.id+'\',-1)">−</button><div class="bold" style="min-width:22px;text-align:center">'+q+'</div><button class="rbtn" '+(atMax?'disabled':'')+' onclick="ZK.cart(\''+x.p.id+'\',1)">+</button></div></div>';}).join('')+'</div>';
   h+='<label>Client (optionnel)</label><input id="v_cust" placeholder="Nom du client" value="'+esc(S.sel.cust||'')+'" oninput="ZK.setCust(this.value)">';
   h+='<label class="mut">Paiement</label><div class="seg">'+['espèces','mobile','carte','crédit'].map(function(m){return '<button class="'+((S.sel.pay||'espèces')===m?'on':'')+'" onclick="ZK.setPay(\''+m+'\')">'+m+'</button>';}).join('')+'</div>';
   h+='<div class="card row between"><div class="sm">'+count+' article(s)</div><div class="h2">'+money(total)+'</div></div>';
   h+='<button class="full" '+(items.length?'':'disabled')+' onclick="ZK.sell()">Valider la vente</button>';
   return h;
 }
-
-/* Ventes (commercial) */
 function viewVentes(){
-  var mine=S.sales.filter(function(s){return s.seller_id===S.me.id;});
-  var h=topbar('Mes ventes','Commercial');
-  h+='<div class="card row"><div class="grow"><div class="h2">'+mine.length+'</div><div class="cap">ventes</div></div><div class="grow"><div class="h2">'+money(mine.reduce(function(s,x){return s+(x.total||0);},0))+'</div><div class="cap">chiffre</div></div></div>';
-  if(!mine.length)return h+'<div class="card sm center">Aucune vente enregistrée.</div>';
-  h+='<div class="card">'+mine.slice(0,40).map(function(s){var d=new Date(s.created_at);return '<div class="lrow"><div class="grow"><div class="bold ell">'+esc(s.customer||'Client comptant')+'</div><div class="cap">'+esc(s.ref||'')+' • '+d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div></div><div class="bold" style="color:var(--ok)">'+money(s.total)+'</div></div>';}).join('')+'</div>';
+  var my=salesOf(S.me.id);
+  var h='<div class="h1" style="margin-bottom:12px">Mes ventes</div>';
+  h+='<div class="card row">'+miniStat('Ventes',my.length)+miniStat('Chiffre',compact(sumT(my)))+miniStat('Aujourd\'hui',salesToday(my).length)+'</div>';
+  if(!my.length)return h+'<div class="card sm center">Aucune vente enregistrée.</div>';
+  h+='<div class="card">'+my.slice(0,40).map(function(s){var d=new Date(s.created_at);return '<div class="lrow"><div class="ico" style="background:var(--successS)">🧾</div><div class="grow"><div class="semi ell">'+esc(s.customer||'Client comptant')+'</div><div class="cap">'+esc(s.ref||'')+' • '+d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div></div><div class="semi" style="color:var(--success)">'+money(s.total)+'</div></div>';}).join('')+'</div>';
   return h;
 }
 
@@ -255,21 +325,26 @@ window.ZK={
   go:function(r){S.route=r;render();window.scrollTo(0,0);},
   logout:logout,
   selHolder:function(id){S.sel.holder=id;render();},
-  selHolderGo:function(id){S.sel.holder=id;S.route='attribuer';render();window.scrollTo(0,0);},
   setPay:function(m){S.sel.pay=m;render();},
   setCust:function(v){S.sel.cust=v;},
+  nu:function(k,v){S.nu[k]=v;if(k==='role'||k==='mgr')render();},
   cart:function(id,d){var max=heldQty(S.me.id,id);var n=Math.min(max,Math.max(0,(S.cart[id]||0)+d));if(n===0)delete S.cart[id];else S.cart[id]=n;render();},
-  assign:async function(holderId,pid,qty){var r=await sb.rpc('assign_stock',{p_holder:holderId,p_product:pid,p_qty:qty});if(r.error){toastErr(r.error);return;}if(!r.data){toast(qty>0?'Source insuffisante':'Rien à reprendre');}await refresh();},
-  adjust:async function(pid,d){var p=prodById(pid);if(!p)return;var v=Math.max(0,(p.stock||0)+d);var r=await sb.from('products').update({stock:v}).eq('id',pid);if(r.error){toastErr(r.error);return;}await refresh();},
+  assign:async function(hid,pid,qty){var r=await sb.rpc('assign_stock',{p_holder:hid,p_product:pid,p_qty:qty});if(r.error){toastErr(r.error);return;}if(!r.data)toast(qty>0?'Source insuffisante':'Rien à reprendre');await refresh();},
+  adjust:async function(pid,d){var p=prodById(pid);if(!p)return;var r=await sb.from('products').update({stock:Math.max(0,(p.stock||0)+d)}).eq('id',pid);if(r.error){toastErr(r.error);return;}await refresh();},
   addProduct:async function(){var name=(document.getElementById('np_name').value||'').trim();var price=parseFloat(document.getElementById('np_price').value)||0;var stock=parseInt(document.getElementById('np_stock').value,10)||0;if(!name){toast('Nom requis');return;}var r=await sb.from('products').insert({name:name,cat:'Divers',price:price,cost:0,stock:stock,reorder:5,unit:'pièce',emoji:'📦'});if(r.error){toastErr(r.error);return;}toast('Produit ajouté');await refresh();},
   sell:async function(){var items=[];Object.keys(S.cart).forEach(function(id){if(S.cart[id]>0)items.push({product_id:id,quantity:S.cart[id]});});if(!items.length){toast('Ajoutez un produit');return;}var r=await sb.rpc('record_sale',{p_items:items,p_pay:S.sel.pay||'espèces',p_customer:S.sel.cust||null});if(r.error){toastErr(r.error);return;}S.cart={};S.sel.cust='';toast('Vente enregistrée ✅');S.route='ventes';await refresh();},
+  createUser:async function(){var f=S.nu;var b=document.getElementById('btnCreate');if(!f.email||!f.pw){toast('Email et mot de passe requis');return;}b.textContent='Création…';b.disabled=true;
+    var r=await sb.functions.invoke('create-user',{body:{email:f.email,password:f.pw,name:f.name,role:f.role,mgr:f.mgr||null}});
+    var err=r.error||(r.data&&r.data.error);
+    if(err){var msg=(r.error&&r.error.message)||(r.data&&r.data.error)||err;toast('⚠ '+msg);b.textContent='Créer le compte';b.disabled=false;return;}
+    toast('Compte créé ✅');S.nu={role:'commercial'};await refresh();},
   setRole:async function(id,r){var res=await sb.from('profiles').update({role:r}).eq('id',id);if(res.error){toastErr(res.error);return;}toast('Rôle mis à jour');await refresh();},
   setMgr:async function(id,m){var res=await sb.from('profiles').update({mgr:m||null}).eq('id',id);if(res.error){toastErr(res.error);return;}toast('Rattachement mis à jour');await refresh();}
 };
 
 /* ---------- Démarrage ---------- */
 if(!cfg.url||!cfg.anonKey){ app.innerHTML='<div class="content"><div class="card"><b>Serveur non configuré.</b><div class="sm mut">Renseignez vos clés Supabase dans <code>demo/config.js</code>.</div></div></div>'; }
-else if(!window.supabase||!window.supabase.createClient){ app.innerHTML='<div class="content"><div class="card"><span class="badge dg">Hors ligne</span><div class="sm mut">La librairie Supabase n\'a pas pu être chargée (vérifiez la connexion internet).</div></div></div>'; }
+else if(!window.supabase||!window.supabase.createClient){ app.innerHTML='<div class="content"><div class="card"><span class="badge dg">Hors ligne</span><div class="sm mut">La librairie Supabase n\'a pas pu être chargée (connexion internet ?).</div></div></div>'; }
 else{ sb=window.supabase.createClient(cfg.url,cfg.anonKey); sb.auth.getSession().then(function(res){ if(res.data&&res.data.session)afterLogin(); else renderLogin(); }); }
 })();
 </script>
