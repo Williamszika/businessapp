@@ -364,7 +364,7 @@ function viewEquipe(){
       +'<label class="mut">Mot de passe</label><input id="nu_pw" value="'+esc(f.pw||'')+'" placeholder="au moins 6 caractères" oninput="ZK.nu(\'pw\',this.value)">'
       +'<label class="mut">Poste</label><div class="seg">'+[['commercial','Commercial'],['responsable','Responsable'],['boss','Direction']].map(function(x){return '<button class="'+(f.role===x[0]?'on':'')+'" onclick="ZK.nu(\'role\',\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div>';
     if(f.role==='commercial'){var rs=responsables();h+='<label>Responsable</label>'+(rs.length?'<div class="chips" style="margin-bottom:4px">'+rs.map(function(r){return '<button class="chip '+(f.mgr===r.id?'on':'')+'" onclick="ZK.nu(\'mgr\',\''+r.id+'\')">'+esc(firstName(r.name))+'</button>';}).join('')+'</div>':'<div class="cap">Aucun responsable — créez-en un d\'abord (ou laissez sans).</div>');}
-    h+='<button class="full mut" id="btnCreate" onclick="ZK.createUser()">Créer le compte</button><div class="cap mut">Alternative sans réglage : Supabase → Authentication → Add user.</div></div>';
+    h+='<button class="full mut" id="btnCreate" onclick="ZK.createUser()">Créer le compte</button><div class="cap mut">Le compte est créé aussitôt ; la personne se connecte avec cet email + ce mot de passe.</div></div>';
   } else h+='<div class="card sm center">👑 Seul le président peut créer ou supprimer des comptes.</div>';
   // --- Équipe commerciale ---
   var team=responsables().concat(commerciaux());
@@ -498,14 +498,13 @@ window.ZK={
   delExpense:async function(id){var r=await sb.from('expenses').delete().eq('id',id);if(r.error){toastErr(r.error);return;}toast('Dépense supprimée');await refresh();},
   sell:async function(){var items=[];Object.keys(S.cart).forEach(function(id){if(S.cart[id]>0)items.push({product_id:id,quantity:S.cart[id]});});if(!items.length){toast('Ajoutez un produit');return;}var r=await sb.rpc('record_sale',{p_items:items,p_pay:S.sel.pay||'espèces',p_customer:S.sel.cust||null});if(r.error){toastErr(r.error);return;}S.cart={};S.sel.cust='';toast('Vente enregistrée ✅');S.route='ventes';await refresh();},
   createUser:async function(){var f=S.nu;var b=document.getElementById('btnCreate');if(!f.email||!f.pw){toast('Email et mot de passe requis');return;}b.textContent='Création…';b.disabled=true;
-    var r=await sb.functions.invoke('create-user',{body:{email:f.email,password:f.pw,name:f.name,role:f.role,mgr:f.mgr||null}});
-    if(r.data&&r.data.error){toast('⚠ '+r.data.error);b.textContent='Créer le compte';b.disabled=false;return;}
-    if(r.error){toast('⚠ Création dans l\'app indisponible. Créez le compte via Supabase → Authentication → Add user.');b.textContent='Créer le compte';b.disabled=false;return;}
+    var r=await sb.rpc('admin_create_user',{p_email:f.email,p_password:f.pw,p_name:f.name||null,p_role:f.role||'commercial',p_mgr:f.mgr||null});
+    if(r.error){toast('⚠ '+(r.error.message||r.error));b.textContent='Créer le compte';b.disabled=false;return;}
     toast('Compte créé ✅');S.nu={role:'commercial'};await refresh();},
   setRole:async function(id,r){var res=await sb.rpc('admin_set_role',{p_target:id,p_role:r});if(res.error){toastErr(res.error);return;}toast('Poste mis à jour');await refresh();},
   setMgr:async function(id,m){var res=await sb.rpc('admin_set_mgr',{p_target:id,p_mgr:m||null});if(res.error){toastErr(res.error);return;}toast('Rattachement mis à jour');await refresh();},
   setShare:async function(id,v){var res=await sb.rpc('admin_set_share',{p_target:id,p_own:parseFloat(v)||0});if(res.error){toastErr(res.error);return;}toast('Part mise à jour');await refresh();},
-  deleteUser:async function(id,name){if(!window.confirm('Supprimer définitivement le compte de '+name+' ?'))return;var r=await sb.functions.invoke('delete-user',{body:{id:id}});if(r.data&&r.data.error){toast('⚠ '+r.data.error);return;}if(r.error){toast('⚠ Suppression dans l\'app indisponible. Supprimez le compte via Supabase → Authentication → Users.');return;}toast('Compte supprimé');await refresh();},
+  deleteUser:async function(id,name){if(!window.confirm('Supprimer définitivement le compte de '+name+' ?'))return;var r=await sb.rpc('admin_delete_user',{p_target:id});if(r.error){toast('⚠ '+(r.error.message||r.error));return;}toast('Compte supprimé');await refresh();},
   prof:function(k,v){(S.prof||(S.prof={}))[k]=v;},
   saveProfil:async function(){var f=S.prof||{};var res=await sb.rpc('update_my_profile',{p_name:(f.name!=null?f.name:S.me.name),p_emoji:null,p_phone:(f.phone!=null?f.phone:(S.me.phone||''))});if(res.error){toastErr(res.error);return;}S.prof={};var u=(await sb.auth.getUser()).data.user;var pr=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();if(pr.data)S.me=pr.data;toast('Profil enregistré ✅');await refresh();},
   changePassword:async function(){var f=S.prof||{};if(!f.pw||f.pw.length<6){toast('Mot de passe : au moins 6 caractères');return;}var res=await sb.auth.updateUser({password:f.pw});if(res.error){toastErr(res.error);return;}f.pw='';toast('Mot de passe mis à jour ✅');render();}
