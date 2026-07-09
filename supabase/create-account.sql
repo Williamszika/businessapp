@@ -17,12 +17,14 @@ declare
   v_id uuid := gen_random_uuid();
   v_email text := lower(trim(coalesce(p_email, '')));
   v_role text;
+  v_comm numeric;
 begin
   if not public.is_president() then raise exception 'Réservé au président'; end if;
   if v_email = '' or coalesce(p_password, '') = '' then raise exception 'Email et mot de passe requis'; end if;
   if length(p_password) < 6 then raise exception 'Mot de passe : au moins 6 caractères'; end if;
   if exists (select 1 from auth.users where email = v_email) then raise exception 'Cet email existe déjà'; end if;
   v_role := case when p_role in ('boss','responsable','commercial') then p_role else 'commercial' end;
+  v_comm := case v_role when 'commercial' then 0.05 when 'responsable' then 0.02 else 0 end;
 
   insert into auth.users
     (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -39,10 +41,10 @@ begin
   values
     (v_id::text, v_id, jsonb_build_object('sub', v_id::text, 'email', v_email), 'email', now(), now(), now());
 
-  insert into public.profiles (id, name, role, mgr, email)
+  insert into public.profiles (id, name, role, mgr, email, comm)
   values (v_id, coalesce(nullif(trim(p_name), ''), split_part(v_email, '@', 1)), v_role,
-          case when v_role = 'commercial' then p_mgr else null end, v_email)
-  on conflict (id) do update set name = excluded.name, role = excluded.role, mgr = excluded.mgr, email = excluded.email;
+          case when v_role = 'commercial' then p_mgr else null end, v_email, v_comm)
+  on conflict (id) do update set name = excluded.name, role = excluded.role, mgr = excluded.mgr, email = excluded.email, comm = excluded.comm;
 
   return v_id;
 end; $$;

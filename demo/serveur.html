@@ -217,6 +217,7 @@ function dashResp(){
   h+='<div class="hero"><div class="sm" style="color:#fff;opacity:.9">Chiffre de mon équipe ce mois</div><div style="font-size:30px;font-weight:800;letter-spacing:-1px">'+money(monthRev(ts))+'</div>'
     +'<div class="row" style="gap:20px;margin-top:12px"><div><div class="cap" style="color:#fff;opacity:.8">Aujourd\'hui</div><div class="bold">'+compact(sumT(salesToday(ts)))+'</div></div><div><div class="cap" style="color:#fff;opacity:.8">Commerciaux</div><div class="bold">'+team.length+'</div></div></div></div>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('🛒','primary','Ventes 30j',inLast(ts,30).length)+stat('📦','info','Ma réserve',carriedOf(S.me.id)+' u.')+'</div>';
+  var crR=S.me.comm||0;h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">💵</div><div><div class="semi">Ma commission d\'équipe</div><div class="cap">'+Math.round(crR*100)+' % des ventes de l\'équipe</div></div></div><div class="h2" style="color:var(--success)">'+money(crR*sumT(ts))+'</div></div>';
   h+='<button class="full" onclick="ZK.go(\'attribuer\')" style="margin-bottom:12px">📤 Répartir à mon équipe</button>';
   h+=chartCard(ts);
   var rank=rankSellers(team);
@@ -229,6 +230,7 @@ function dashCom(){
     +'<div class="row" style="gap:20px;margin-top:12px"><div><div class="cap" style="color:#fff;opacity:.8">Aujourd\'hui</div><div class="bold">'+compact(sumT(salesToday(my)))+'</div></div><div><div class="cap" style="color:#fff;opacity:.8">Ventes 30j</div><div class="bold">'+inLast(my,30).length+'</div></div></div></div>';
   h+='<button class="full" onclick="ZK.go(\'vendre\')" style="margin-bottom:12px">🛒 Enregistrer une vente</button>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','primary','Mon stock',carriedOf(S.me.id)+' u.')+stat('💰','success','Chiffre 30j',compact(sumT(inLast(my,30))))+'</div>';
+  var crC=S.me.comm||0;h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">💵</div><div><div class="semi">Ma commission</div><div class="cap">'+Math.round(crC*100)+' % de mes ventes</div></div></div><div class="h2" style="color:var(--success)">'+money(crC*sumT(my))+'</div></div>';
   var lows=mine.filter(function(x){return x.qty<=3;}).length;
   h+='<div class="card" onclick="ZK.go(\'stock\')"><div class="row between"><div class="row" style="gap:10px">📦<div><div class="semi">Mon stock terrain</div><div class="cap">'+mine.length+' produit(s)'+(lows?' • '+lows+' faible(s)':'')+'</div></div></div><div class="h2">'+carriedOf(S.me.id)+'</div></div></div>';
   h+=chartCard(my);
@@ -374,6 +376,7 @@ function viewEquipe(){
     return '<div class="lrow wrap">'+avatar(p.name,38)+'<div class="grow"><div class="semi ell">'+esc(p.name)+'</div><div class="cap">'+poste(p)+(p.email?' • '+esc(p.email):'')+'</div></div>'
       +(pres?('<select style="width:auto;padding:8px 10px" onchange="ZK.setRole(\''+p.id+'\',this.value)">'+['boss','responsable','commercial'].map(function(r){return '<option value="'+r+'" '+(p.role===r?'selected':'')+'>'+roleLabel(r)+'</option>';}).join('')+'</select>'
         +(p.role==='commercial'?'<select style="width:auto;padding:8px 10px" onchange="ZK.setMgr(\''+p.id+'\',this.value)"><option value="">— resp —</option>'+rsOpts+'</select>':'')
+        +'<span class="cap">com.</span><input type="number" value="'+Math.round((p.comm||0)*100)+'" onchange="ZK.setComm(\''+p.id+'\',(parseFloat(this.value)||0)/100)" style="width:46px;padding:8px" title="Commission %"><span class="cap">%</span>'
         +'<button class="rbtn" style="background:var(--dangerS);color:var(--danger)" onclick="ZK.deleteUser(\''+p.id+'\',\''+esc((p.name||'').replace(/\x27/g,''))+'\')">🗑️</button>')
         :'')+'</div>';
   }).join(''):'<div class="sm center">Aucun membre commercial pour l\'instant.</div>')+'</div>';
@@ -506,6 +509,7 @@ window.ZK={
   setRole:async function(id,r){var res=await sb.rpc('admin_set_role',{p_target:id,p_role:r});if(res.error){toastErr(res.error);return;}toast('Poste mis à jour');await refresh();},
   setMgr:async function(id,m){var res=await sb.rpc('admin_set_mgr',{p_target:id,p_mgr:m||null});if(res.error){toastErr(res.error);return;}toast('Rattachement mis à jour');await refresh();},
   setShare:async function(id,v){var res=await sb.rpc('admin_set_share',{p_target:id,p_own:parseFloat(v)||0});if(res.error){toastErr(res.error);return;}toast('Part mise à jour');await refresh();},
+  setComm:async function(id,c){var res=await sb.rpc('admin_set_comm',{p_target:id,p_comm:c});if(res.error){toastErr(res.error);return;}toast('Commission mise à jour');await refresh();},
   deleteUser:async function(id,name){if(!window.confirm('Supprimer définitivement le compte de '+name+' ?'))return;var r=await sb.rpc('admin_delete_user',{p_target:id});if(r.error){toast('⚠ '+(r.error.message||r.error));return;}toast('Compte supprimé');await refresh();},
   prof:function(k,v){(S.prof||(S.prof={}))[k]=v;},
   saveProfil:async function(){var f=S.prof||{};var res=await sb.rpc('update_my_profile',{p_name:(f.name!=null?f.name:S.me.name),p_emoji:null,p_phone:(f.phone!=null?f.phone:(S.me.phone||''))});if(res.error){toastErr(res.error);return;}S.prof={};var u=(await sb.auth.getUser()).data.user;var pr=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();if(pr.data)S.me=pr.data;toast('Profil enregistré ✅');await refresh();},
