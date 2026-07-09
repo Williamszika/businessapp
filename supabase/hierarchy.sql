@@ -81,8 +81,9 @@ begin
   end loop;
 
   v_sale := gen_random_uuid();
-  insert into sales(id, ref, seller_id, total, pay, customer)
-    values (v_sale, 'ZKA-' || to_char(now(),'YYMMDDHH24MISS'), v_caller, 0, p_pay, p_customer);
+  insert into sales(id, ref, seller_id, total, pay, customer, paid_at)
+    values (v_sale, 'ZKA-' || to_char(now(),'YYMMDDHH24MISS'), v_caller, 0, p_pay, p_customer,
+            case when p_pay = 'crédit' then null else now() end);
 
   for it in select * from jsonb_array_elements(p_items) loop
     v_pid := (it->>'product_id')::uuid; v_qty := (it->>'quantity')::integer;
