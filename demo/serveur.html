@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09e (fiche membre : courbe + classement) -->
+<!-- ZKA build: 2026-07-09f (Équipe épurée + gestion sur la fiche membre) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -372,14 +372,12 @@ function viewEquipe(){
     return h;
   }
   var pres=isPresident();
-  h+='<div class="cap" style="margin-bottom:8px">Touchez un nom pour voir son détail : arrivée, ancienneté et chiffre d\'affaires depuis sa prise de fonction.</div>';
+  h+='<div class="cap" style="margin-bottom:8px">Touchez un membre pour voir son détail et le gérer (poste, rattachement, commission, part, suppression).</div>';
   // --- Direction (bureau — 5 fauteuils) ---
   var bs=bosses(),totalShare=bs.reduce(function(s,b){return s+(b.own||0);},0);
   h+='<div class="h3" style="margin-bottom:8px">🏛️ Direction — '+bs.length+'/5 fauteuils</div>';
   h+='<div class="card">'+bs.map(function(b){var me=b.id===S.me.id;
-    return '<div class="lrow wrap"><div class="row grow" style="gap:11px;cursor:pointer;min-width:0" onclick="ZK.openMembre(\''+b.id+'\')">'+avatar(b.name,40)+'<div class="grow" style="min-width:0"><div class="semi ell">'+esc(b.name)+(me?' <span class="cap">(vous)</span>':'')+' ›</div><div class="cap">'+poste(b)+' • part '+money(shareAmount(b.own))+'</div></div></div>'
-      +(pres?('<div class="row" style="gap:6px"><input type="number" value="'+(b.own||0)+'" onchange="ZK.setShare(\''+b.id+'\',this.value)" style="width:58px;padding:8px" title="Part de participation %"><span class="cap">%</span>'+(!me?'<button class="rbtn" style="background:var(--dangerS);color:var(--danger)" onclick="ZK.deleteUser(\''+b.id+'\',\''+esc((b.name||'').replace(/\x27/g,''))+'\')">🗑️</button>':'')+'</div>')
-        :'<span class="badge acc">'+(b.own||0)+' %</span>')+'</div>';
+    return '<div class="lrow" style="cursor:pointer" onclick="ZK.openMembre(\''+b.id+'\')">'+avatar(b.name,40)+'<div class="grow" style="min-width:0"><div class="semi ell">'+esc(b.name)+(me?' <span class="cap">(vous)</span>':'')+' ›</div><div class="cap">'+poste(b)+' • part '+money(shareAmount(b.own))+'</div></div><span class="badge acc">'+(b.own||0)+' %</span></div>';
   }).join('')+'<div class="lrow between"><div class="cap">Total des parts</div><div class="semi">'+totalShare+' %</div></div></div>';
   // --- Création de compte (président uniquement) ---
   if(pres){var f=S.nu;
@@ -391,16 +389,9 @@ function viewEquipe(){
     if(f.role==='commercial'){var rs=responsables();h+='<label>Responsable (obligatoire)</label>'+(rs.length?'<div class="chips" style="margin-bottom:4px">'+rs.map(function(r){return '<button class="chip '+(f.mgr===r.id?'on':'')+'" onclick="ZK.nu(\'mgr\',\''+r.id+'\')">'+esc(firstName(r.name))+'</button>';}).join('')+'</div>':'<div class="cap" style="color:var(--danger)">⚠ Créez d\'abord un responsable — un commercial doit être rattaché à un responsable.</div>');}
     h+='<button class="full mut" id="btnCreate" onclick="ZK.createUser()">Créer le compte</button><div class="cap mut">Le compte est créé aussitôt ; la personne se connecte avec cet email + ce mot de passe.</div></div>';
   } else h+='<div class="card sm center">👑 Seul le président peut créer ou supprimer des comptes.</div>';
-  // --- Organisation : chaque responsable, puis ses commerciaux en dessous ---
-  function ctrl(p){ if(!pres)return '';
-    var rsOpts=responsables().map(function(r){return '<option value="'+r.id+'" '+(p.mgr===r.id?'selected':'')+'>'+esc(firstName(r.name))+'</option>';}).join('');
-    return '<select style="width:auto;padding:8px 10px" onchange="ZK.setRole(\''+p.id+'\',this.value)">'+['boss','responsable','commercial'].map(function(r){return '<option value="'+r+'" '+(p.role===r?'selected':'')+'>'+roleLabel(r)+'</option>';}).join('')+'</select>'
-      +(p.role==='commercial'?'<select style="width:auto;padding:8px 10px" onchange="ZK.setMgr(\''+p.id+'\',this.value)"><option value="">— resp —</option>'+rsOpts+'</select>':'')
-      +'<span class="cap">'+(p.role==='responsable'?'perso':'com.')+'</span><input type="number" value="'+Math.round((p.comm||0)*100)+'" onchange="ZK.setComm(\''+p.id+'\',(parseFloat(this.value)||0)/100)" style="width:44px;padding:8px" title="Commission perso %"><span class="cap">%</span>'
-      +(p.role==='responsable'?'<span class="cap">éq.</span><input type="number" value="'+Math.round(teamRate(p)*100)+'" onchange="ZK.setTeamComm(\''+p.id+'\',(parseFloat(this.value)||0)/100)" style="width:44px;padding:8px" title="Prime sur les ventes de l\'équipe %"><span class="cap">%</span>':'')
-      +'<button class="rbtn" style="background:var(--dangerS);color:var(--danger)" onclick="ZK.deleteUser(\''+p.id+'\',\''+esc((p.name||'').replace(/\x27/g,''))+'\')">🗑️</button>';
-  }
-  function orow(p,ind){return '<div class="lrow wrap"'+(ind?' style="padding-left:12px"':'')+'><div class="row grow" style="gap:11px;cursor:pointer;min-width:0" onclick="ZK.openMembre(\''+p.id+'\')">'+avatar(p.name,ind?32:40)+'<div class="grow" style="min-width:0"><div class="semi ell">'+(ind?'↳ ':'')+esc(p.name)+' ›</div><div class="cap ell">'+poste(p)+' • '+carriedOf(p.id)+' u. • '+salesOf(p.id).length+' ventes</div></div></div>'+ctrl(p)+'</div>';}
+  // --- Organisation : chaque responsable, puis ses commerciaux (lecture seule ; on touche pour gérer) ---
+  function orow(p,ind){var rate=' • com. '+Math.round((p.comm||0)*100)+' %'+(p.role==='responsable'?' + éq. '+Math.round(teamRate(p)*100)+' %':'');
+    return '<div class="lrow" style="cursor:pointer'+(ind?';padding-left:12px':'')+'" onclick="ZK.openMembre(\''+p.id+'\')">'+avatar(p.name,ind?32:40)+'<div class="grow" style="min-width:0"><div class="semi ell">'+(ind?'↳ ':'')+esc(p.name)+' ›</div><div class="cap ell">'+poste(p)+' • '+salesOf(p.id).length+' ventes • '+carriedOf(p.id)+' u.'+rate+'</div></div></div>';}
   var rs=responsables();
   h+='<div class="h3" style="margin:14px 0 8px">👥 Organisation</div>';
   if(!rs.length&&!commerciaux().length)h+='<div class="card sm center">Aucun membre commercial pour l\'instant.</div>';
@@ -465,6 +456,19 @@ function viewMembre(id){
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('🛒','primary','Ventes',my.length)+stat('💰','success','CA total',compact(sumT(my)))+'</div>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','info','En stock',carriedOf(m.id)+' u.')+(isB?stat('🏛️','accent','Part',(m.own||0)+' %'):stat('💵','accent','Comm. due',compact(commDue(m))))+'</div>';
   h+='<div class="card"><div class="lrow between"><div class="sm">Arrivée sur le site</div><div class="semi">'+fmtDate(m.created_at)+'</div></div><div class="lrow between"><div class="sm">Ancienneté</div><div class="semi">'+tenure(m.created_at)+'</div></div><div class="lrow between"><div class="sm">CA depuis la prise de fonction</div><div class="semi" style="color:var(--success)">'+money(sumT(my))+'</div></div>'+(isB?'<div class="lrow between"><div class="sm">Part du bénéfice</div><div class="semi">'+(m.own||0)+' % • '+money(shareAmount(m.own))+'</div></div>':'<div class="lrow between"><div class="sm">Salaire mensuel</div><div class="semi">'+money(m.salary||0)+'</div></div><div class="lrow between"><div class="sm">Commission à percevoir</div><div class="semi" style="color:var(--success)">'+money(commDue(m))+'</div></div>')+'</div>';
+  if(isPresident()){
+    h+='<div class="card"><div class="h3" style="margin-bottom:10px">⚙️ Gestion (président)</div>';
+    if(isB){
+      h+='<label>Part de participation (%)</label><input type="number" inputmode="decimal" value="'+(m.own||0)+'" onchange="ZK.setShare(\''+m.id+'\',this.value)">';
+    } else {
+      h+='<label>Poste</label><select onchange="ZK.setRole(\''+m.id+'\',this.value)">'+['boss','responsable','commercial'].map(function(r){return '<option value="'+r+'" '+(m.role===r?'selected':'')+'>'+roleLabel(r)+'</option>';}).join('')+'</select>';
+      if(m.role==='commercial'){var rsOpts=responsables().map(function(r){return '<option value="'+r.id+'" '+(m.mgr===r.id?'selected':'')+'>'+esc(firstName(r.name))+'</option>';}).join('');
+        h+='<label class="mut">Responsable</label><select onchange="ZK.setMgr(\''+m.id+'\',this.value)"><option value="">— aucun —</option>'+rsOpts+'</select>';}
+      h+='<div class="row mut" style="gap:10px"><div class="grow"><label>Commission perso (%)</label><input type="number" inputmode="decimal" value="'+Math.round((m.comm||0)*100)+'" onchange="ZK.setComm(\''+m.id+'\',(parseFloat(this.value)||0)/100)"></div>'+(m.role==='responsable'?'<div class="grow"><label>Prime équipe (%)</label><input type="number" inputmode="decimal" value="'+Math.round(teamRate(m)*100)+'" onchange="ZK.setTeamComm(\''+m.id+'\',(parseFloat(this.value)||0)/100)"></div>':'')+'</div>';
+    }
+    if(m.id!==S.me.id)h+='<button class="ghost full mut" style="color:var(--danger);border-color:var(--danger)" onclick="ZK.deleteUser(\''+m.id+'\',\''+esc((m.name||'').replace(/\x27/g,''))+'\')">🗑️ Supprimer ce compte</button>';
+    h+='</div>';
+  }
   if(!isB)h+='<button class="full sec" onclick="ZK.openBulletin(\''+m.id+'\')" style="margin-bottom:12px">🧾 Bulletin de paie</button>';
   if(eligibleHolders().some(function(a){return a.id===m.id;}))h+='<button class="full" onclick="ZK.assignTo(\''+m.id+'\')" style="margin-bottom:12px">📤 Lui attribuer du stock</button>';
   if(!isB){
@@ -668,7 +672,7 @@ window.ZK={
   setSalary:async function(id,v){var res=await sb.rpc('admin_set_salary',{p_target:id,p_salary:parseFloat(v)||0});if(res.error){toastErr(res.error);return;}toast('Salaire mis à jour');await refresh();},
   requestPayout:async function(kind,amount){var res=await sb.rpc('request_payout',{p_kind:kind,p_amount:amount});if(res.error){toastErr(res.error);return;}toast('Demande envoyée à la direction ✅');await refresh();},
   payMember:async function(id,kind,amount){var m=profById(id);if(!window.confirm('Payer '+(kind==='commission'?'la commission':'le salaire')+' de '+((m&&m.name)||'')+' : '+money(amount)+' ?'))return;var res=await sb.rpc('pay_member',{p_member:id,p_kind:kind,p_amount:amount,p_note:null});if(res.error){toastErr(res.error);return;}toast('Versement enregistré ✅');await refresh();},
-  deleteUser:async function(id,name){var m=profById(id);if(m&&m.role==='responsable'){var n=commerciauxOf(id).length;if(n){toast('Réattribuez d\'abord ses '+n+' commercial(aux) avant de supprimer ce responsable');return;}}if(!window.confirm('Supprimer définitivement le compte de '+name+' ?'))return;var r=await sb.rpc('admin_delete_user',{p_target:id});if(r.error){toast('⚠ '+(r.error.message||r.error));return;}toast('Compte supprimé');await refresh();},
+  deleteUser:async function(id,name){var m=profById(id);if(m&&m.role==='responsable'){var n=commerciauxOf(id).length;if(n){toast('Réattribuez d\'abord ses '+n+' commercial(aux) avant de supprimer ce responsable');return;}}if(!window.confirm('Supprimer définitivement le compte de '+name+' ?'))return;var r=await sb.rpc('admin_delete_user',{p_target:id});if(r.error){toast('⚠ '+(r.error.message||r.error));return;}toast('Compte supprimé');S.route='equipe';await refresh();},
   prof:function(k,v){(S.prof||(S.prof={}))[k]=v;},
   saveProfil:async function(){var f=S.prof||{};var res=await sb.rpc('update_my_profile',{p_name:(f.name!=null?f.name:S.me.name),p_emoji:null,p_phone:(f.phone!=null?f.phone:(S.me.phone||''))});if(res.error){toastErr(res.error);return;}S.prof={};var u=(await sb.auth.getUser()).data.user;var pr=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();if(pr.data)S.me=pr.data;toast('Profil enregistré ✅');await refresh();},
   changePassword:async function(){var f=S.prof||{};if(!f.pw||f.pw.length<6){toast('Mot de passe : au moins 6 caractères');return;}var res=await sb.auth.updateUser({password:f.pw});if(res.error){toastErr(res.error);return;}f.pw='';toast('Mot de passe mis à jour ✅');render();}
