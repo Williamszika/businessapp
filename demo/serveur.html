@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09i (glisser une ligne pour des actions rapides) -->
+<!-- ZKA build: 2026-07-09j (création repliable + glisser entrepôt/dépenses) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -274,7 +274,10 @@ function viewEntrepot(){
   h+='<div class="row" style="gap:10px;margin-bottom:8px"><button class="grow" onclick="ZK.go(\'produitNew\')">➕ Nouveau produit</button><button class="sec grow" onclick="ZK.go(\'reception\')">📥 Réceptionner</button></div>';
   h+='<div class="cap" style="margin-bottom:10px">« − / + » corrige l\'inventaire (sans dépense). Pour un achat, utilisez « Réceptionner » (enregistre la dépense).</div>';
   if(!S.products.length)h+='<div class="card sm center">Aucun produit. Ajoutez-en un.</div>';
-  else h+='<div class="card">'+S.products.map(function(p){return '<div class="lrow"><div class="grow" style="cursor:pointer" onclick="ZK.openProduct(\''+p.id+'\')"><div class="semi ell">'+esc(p.emoji||'📦')+' '+esc(p.name)+' ›</div><div class="cap">'+esc(p.cat)+' • vente '+money(p.price)+' • coût '+money(p.cost)+'</div></div><div class="stepper"><button class="rbtn sec" onclick="ZK.adjust(\''+p.id+'\',-1)">−</button><div class="bold" style="min-width:46px;text-align:center">'+p.stock+'</div><button class="rbtn" onclick="ZK.adjust(\''+p.id+'\',1)">+</button></div></div>';}).join('')+'</div>';
+  else h+='<div class="card">'+S.products.map(function(p){
+    var inner='<div class="grow" style="cursor:pointer;min-width:0" onclick="ZK.openProduct(\''+p.id+'\')"><div class="semi ell">'+esc(p.emoji||'📦')+' '+esc(p.name)+' ›</div><div class="cap ell">'+esc(p.cat)+' • vente '+money(p.price)+' • coût '+money(p.cost)+'</div></div><div class="stepper"><button class="rbtn sec" onclick="ZK.adjust(\''+p.id+'\',-1)">−</button><div class="bold" style="min-width:46px;text-align:center">'+p.stock+'</div><button class="rbtn" onclick="ZK.adjust(\''+p.id+'\',1)">+</button></div>';
+    return swipeRow(inner,'','',[{e:'📥',c:'var(--violet)',fn:"ZK.receiveFor('"+p.id+"')"}]);
+  }).join('')+'</div>';
   return h;
 }
 function miniStat(l,v){return '<div class="grow center"><div class="h2">'+v+'</div><div class="cap">'+l+'</div></div>';}
@@ -283,7 +286,8 @@ function backBtn(to){return '<button class="ghost" style="padding:8px 12px;margi
 /* Ligne glissable : glisser vers la gauche révèle les boutons d'action à droite. */
 function swipeRow(fgInner,fgStyle,openClick,actions){
   var acts=actions.map(function(a){return '<button class="sa-btn" style="background:'+a.c+'" onclick="'+a.fn+'">'+a.e+'</button>';}).join('');
-  return '<div class="swipe"><div class="swipe-actions">'+acts+'</div><div class="swipe-fg"'+(fgStyle?' style="'+fgStyle+'"':'')+' onclick="'+openClick+'">'+fgInner+'</div></div>';
+  var style=(fgStyle||'')+(openClick?';cursor:pointer':'');
+  return '<div class="swipe"><div class="swipe-actions">'+acts+'</div><div class="swipe-fg"'+(style?' style="'+style+'"':'')+(openClick?' onclick="'+openClick+'"':'')+'>'+fgInner+'</div></div>';
 }
 var EMOJIS=['📦','🥤','💧','🍚','🛢️','🧼','☕','🥛','🔌','🎧','👕','🧢','🍪','🍯','🧂','🥫','🍅','🧴','💊','📱','👟','🔋'];
 
@@ -393,13 +397,16 @@ function viewEquipe(){
   }).join('')+'<div class="lrow between"><div class="cap">Total des parts</div><div class="semi">'+totalShare+' %</div></div></div>';
   // --- Création de compte (président uniquement) ---
   if(pres){var f=S.nu;
-    h+='<div class="card"><div class="h3" style="margin-bottom:10px">➕ Créer un compte</div>'
-      +'<label>Nom complet</label><input id="nu_name" value="'+esc(f.name||'')+'" placeholder="Ex. Sara Koné" oninput="ZK.nu(\'name\',this.value)">'
-      +'<label class="mut">Email</label><input id="nu_email" type="email" autocapitalize="off" value="'+esc(f.email||'')+'" placeholder="sara@exemple.com" oninput="ZK.nu(\'email\',this.value)">'
-      +'<label class="mut">Mot de passe</label><input id="nu_pw" value="'+esc(f.pw||'')+'" placeholder="au moins 6 caractères" oninput="ZK.nu(\'pw\',this.value)">'
-      +'<label class="mut">Poste</label><div class="seg">'+[['commercial','Commercial'],['responsable','Responsable'],['boss','Direction']].map(function(x){return '<button class="'+(f.role===x[0]?'on':'')+'" onclick="ZK.nu(\'role\',\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div>';
-    if(f.role==='commercial'){var rs=responsables();h+='<label>Responsable (obligatoire)</label>'+(rs.length?'<div class="chips" style="margin-bottom:4px">'+rs.map(function(r){return '<button class="chip '+(f.mgr===r.id?'on':'')+'" onclick="ZK.nu(\'mgr\',\''+r.id+'\')">'+esc(firstName(r.name))+'</button>';}).join('')+'</div>':'<div class="cap" style="color:var(--danger)">⚠ Créez d\'abord un responsable — un commercial doit être rattaché à un responsable.</div>');}
-    h+='<button class="full mut" id="btnCreate" onclick="ZK.createUser()">Créer le compte</button><div class="cap mut">Le compte est créé aussitôt ; la personne se connecte avec cet email + ce mot de passe.</div></div>';
+    h+='<div class="card"><button class="'+(S.showCreate?'sec':'')+' full" onclick="ZK.toggleCreate()">'+(S.showCreate?'✕ Fermer':'➕ Créer un compte')+'</button>';
+    if(S.showCreate){
+      h+='<label class="mut">Nom complet</label><input id="nu_name" value="'+esc(f.name||'')+'" placeholder="Ex. Sara Koné" oninput="ZK.nu(\'name\',this.value)">'
+        +'<label class="mut">Email</label><input id="nu_email" type="email" autocapitalize="off" value="'+esc(f.email||'')+'" placeholder="sara@exemple.com" oninput="ZK.nu(\'email\',this.value)">'
+        +'<label class="mut">Mot de passe</label><input id="nu_pw" value="'+esc(f.pw||'')+'" placeholder="au moins 6 caractères" oninput="ZK.nu(\'pw\',this.value)">'
+        +'<label class="mut">Poste</label><div class="seg">'+[['commercial','Commercial'],['responsable','Responsable'],['boss','Direction']].map(function(x){return '<button class="'+(f.role===x[0]?'on':'')+'" onclick="ZK.nu(\'role\',\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div>';
+      if(f.role==='commercial'){var rs=responsables();h+='<label>Responsable (obligatoire)</label>'+(rs.length?'<div class="chips" style="margin-bottom:4px">'+rs.map(function(r){return '<button class="chip '+(f.mgr===r.id?'on':'')+'" onclick="ZK.nu(\'mgr\',\''+r.id+'\')">'+esc(firstName(r.name))+'</button>';}).join('')+'</div>':'<div class="cap" style="color:var(--danger)">⚠ Créez d\'abord un responsable — un commercial doit être rattaché à un responsable.</div>');}
+      h+='<button class="full mut" id="btnCreate" onclick="ZK.createUser()">Créer le compte</button><div class="cap mut">Le compte est créé aussitôt ; la personne se connecte avec cet email + ce mot de passe.</div>';
+    }
+    h+='</div>';
   } else h+='<div class="card sm center">👑 Seul le président peut créer ou supprimer des comptes.</div>';
   // --- Organisation : chaque responsable, puis ses commerciaux (lecture seule ; on touche pour gérer) ---
   function orow(p,ind){var rate=' • com. '+Math.round((p.comm||0)*100)+' %'+(p.role==='responsable'?' + éq. '+Math.round(teamRate(p)*100)+' %':'');
@@ -630,7 +637,10 @@ function finDepenses(){
     +'<button class="full mut" onclick="ZK.addExpense()">Ajouter la dépense</button></div>';
   h+='<div class="card row between"><div class="sm">Total des dépenses</div><div class="h2" style="color:var(--danger)">'+money(totalExpenses())+'</div></div>';
   if(!S.expenses.length)h+='<div class="card sm center">Aucune dépense enregistrée.</div>';
-  else h+='<div class="card">'+S.expenses.map(function(e){var d=new Date(e.at);return '<div class="lrow"><div class="grow"><div class="semi ell">'+esc(e.label)+'</div><div class="cap">'+esc(e.category)+' • '+d.toLocaleDateString('fr-FR')+(e.qty?' • '+e.qty+' u.':'')+'</div></div><div class="semi">'+money(e.amount)+'</div><button class="rbtn sec" onclick="ZK.delExpense(\''+e.id+'\')">🗑️</button></div>';}).join('')+'</div>';
+  else h+='<div class="cap" style="margin:-6px 2px 6px">Glissez une dépense vers la gauche pour la supprimer.</div><div class="card">'+S.expenses.map(function(e){var d=new Date(e.at);
+    var inner='<div class="grow" style="min-width:0"><div class="semi ell">'+esc(e.label)+'</div><div class="cap ell">'+esc(e.category)+' • '+d.toLocaleDateString('fr-FR')+(e.qty?' • '+e.qty+' u.':'')+'</div></div><div class="semi">'+money(e.amount)+'</div>';
+    return swipeRow(inner,'','',[{e:'🗑️',c:'var(--danger)',fn:"ZK.delExpense('"+e.id+"')"}]);
+  }).join('')+'</div>';
   return h;
 }
 function finProduits(){
@@ -656,6 +666,7 @@ window.ZK={
   rec:function(k,v){S.rec[k]=v;render();},
   exp:function(k,v){S.exp[k]=v;if(k==='category')render();},
   finTab:function(t){S.finTab=t;render();},
+  toggleCreate:function(){S.showCreate=!S.showCreate;render();},
   cart:function(id,d){var max=heldQty(S.me.id,id);var n=Math.min(max,Math.max(0,(S.cart[id]||0)+d));if(n===0)delete S.cart[id];else S.cart[id]=n;render();},
   assign:async function(hid,pid,qty){var r=await sb.rpc('assign_stock',{p_holder:hid,p_product:pid,p_qty:qty});if(r.error){toastErr(r.error);return;}if(!r.data)toast(qty>0?'Source insuffisante':'Rien à reprendre');await refresh();},
   adjust:async function(pid,d){var p=prodById(pid);if(!p)return;var r=await sb.from('products').update({stock:Math.max(0,(p.stock||0)+d)}).eq('id',pid);if(r.error){toastErr(r.error);return;}await refresh();},
@@ -679,7 +690,7 @@ window.ZK={
   createUser:async function(){var f=S.nu;var b=document.getElementById('btnCreate');if(!f.email||!f.pw){toast('Email et mot de passe requis');return;}if(f.role==='commercial'&&!f.mgr){toast('Choisissez le responsable de ce commercial');return;}b.textContent='Création…';b.disabled=true;
     var r=await sb.rpc('admin_create_user',{p_email:f.email,p_password:f.pw,p_name:f.name||null,p_role:f.role||'commercial',p_mgr:f.mgr||null});
     if(r.error){toast('⚠ '+(r.error.message||r.error));b.textContent='Créer le compte';b.disabled=false;return;}
-    toast('Compte créé ✅');S.nu={role:'commercial'};await refresh();},
+    toast('Compte créé ✅');S.nu={role:'commercial'};S.showCreate=false;await refresh();},
   setRole:async function(id,r){var res=await sb.rpc('admin_set_role',{p_target:id,p_role:r});if(res.error){toastErr(res.error);return;}toast('Poste mis à jour');await refresh();},
   setMgr:async function(id,m){var res=await sb.rpc('admin_set_mgr',{p_target:id,p_mgr:m||null});if(res.error){toastErr(res.error);return;}toast('Rattachement mis à jour');await refresh();},
   setShare:async function(id,v){var res=await sb.rpc('admin_set_share',{p_target:id,p_own:parseFloat(v)||0});if(res.error){toastErr(res.error);return;}toast('Part mise à jour');await refresh();},
