@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09b (prime équipe réglable + bulletin de paie) -->
+<!-- ZKA build: 2026-07-09c (cartes du tableau de bord cliquables) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -208,7 +208,7 @@ function render(){
 }
 function topRow(){return '<div class="row between" style="margin-bottom:12px"><div class="row" style="gap:10px;cursor:pointer" onclick="ZK.go(\'profil\')">'+avatar(S.me.name,42)+'<div><div class="semi ell">'+esc(S.me.name)+'</div><div class="cap">'+poste(S.me)+' ›</div></div></div><button class="ghost" style="padding:9px 12px" onclick="ZK.logout()">Quitter</button></div>';}
 function greet(){var h=new Date().getHours();return h<12?'Bonjour':h<18?'Bon après-midi':'Bonsoir';}
-function stat(icon,tone,label,val){var t={success:['var(--successS)','var(--success)'],primary:['var(--primS)','var(--violet)'],info:['var(--infoS)','var(--info)'],accent:['var(--goldS)','var(--warn)']}[tone]||['var(--alt)','var(--t2)'];return '<div class="stat"><div class="ico" style="background:'+t[0]+'">'+icon+'</div><div class="h2 mut ell">'+val+'</div><div class="cap">'+label+'</div></div>';}
+function stat(icon,tone,label,val,go){var t={success:['var(--successS)','var(--success)'],primary:['var(--primS)','var(--violet)'],info:['var(--infoS)','var(--info)'],accent:['var(--goldS)','var(--warn)']}[tone]||['var(--alt)','var(--t2)'];var click=go?' style="cursor:pointer" onclick="ZK.go(\''+go+'\')"':'';return '<div class="stat"'+click+'><div class="ico" style="background:'+t[0]+'">'+icon+'</div><div class="h2 mut ell">'+val+'</div><div class="cap">'+label+(go?' ›':'')+'</div></div>';}
 function chartCard(sales){var series=seriesDaily(sales,14);return '<div class="card"><div class="h3">'+compact(series.reduce(function(s,d){return s+d.v;},0))+'</div><div class="cap" style="margin-bottom:10px">Chiffre — 14 derniers jours</div>'+lineChart(series)+'</div>';}
 
 /* ---------- Accueil / Tableau de bord ---------- */
@@ -218,8 +218,8 @@ function dashBoss(){
   var all=S.sales,today=salesToday(all),h=topRow();
   h+='<div class="hero"><div class="sm" style="color:#fff;opacity:.9">Chiffre global ce mois</div><div style="font-size:31px;font-weight:800;letter-spacing:-1px">'+money(monthRev(all))+'</div>'
     +'<div class="row" style="gap:20px;margin-top:12px"><div><div class="cap" style="color:#fff;opacity:.8">Aujourd\'hui</div><div class="bold">'+compact(sumT(today))+'</div></div><div><div class="cap" style="color:#fff;opacity:.8">Ventes 30j</div><div class="bold">'+inLast(all,30).length+'</div></div></div></div>';
-  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','primary','Produits',S.products.length)+stat('🗺️','info','Stock terrain',fieldTotal()+' u.')+'</div>';
-  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('💰','success','Chiffre 30j',compact(sumT(inLast(all,30))))+stat('👥','accent','Équipe',responsables().length+commerciaux().length)+'</div>';
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','primary','Produits',S.products.length,'entrepot')+stat('🗺️','info','Stock terrain',fieldTotal()+' u.','terrain')+'</div>';
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('💰','success','Chiffre 30j',compact(sumT(inLast(all,30))),'finances')+stat('👥','accent','Équipe',responsables().length+commerciaux().length,'equipe')+'</div>';
   h+='<div class="card row" onclick="ZK.go(\'finances\')">'+miniStat('Revenus',compact(totalRevenue()))+miniStat('Dépenses',compact(totalExpenses()))+miniStat('Bénéfice',compact(netProfit()))+'</div>';
   h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">🏛️</div><div><div class="semi">Ma part du bénéfice</div><div class="cap">'+(S.me.own||0)+' % de participation</div></div></div><div class="h2" style="color:var(--success)">'+money(shareAmount(S.me.own))+'</div></div>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px"><button class="grow" onclick="ZK.go(\'attribuer\')">📤 Attribuer</button><button class="sec grow" onclick="ZK.go(\'terrain\')">🗺️ Terrain</button></div>';
@@ -233,7 +233,7 @@ function dashResp(){
   var team=commerciauxOf(S.me.id),ts=salesResp(S.me.id),h=topRow();
   h+='<div class="hero"><div class="sm" style="color:#fff;opacity:.9">Chiffre de mon équipe ce mois</div><div style="font-size:30px;font-weight:800;letter-spacing:-1px">'+money(monthRev(ts))+'</div>'
     +'<div class="row" style="gap:20px;margin-top:12px"><div><div class="cap" style="color:#fff;opacity:.8">Aujourd\'hui</div><div class="bold">'+compact(sumT(salesToday(ts)))+'</div></div><div><div class="cap" style="color:#fff;opacity:.8">Commerciaux</div><div class="bold">'+team.length+'</div></div></div></div>';
-  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('🛒','primary','Ventes 30j',inLast(ts,30).length)+stat('📦','info','Ma réserve',carriedOf(S.me.id)+' u.')+'</div>';
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('🛒','primary','Ventes 30j',inLast(ts,30).length,'equipe')+stat('📦','info','Ma réserve',carriedOf(S.me.id)+' u.','stock')+'</div>';
   h+=remunCards();
   h+='<button class="full" onclick="ZK.go(\'vendre\')" style="margin-bottom:12px">🛒 Enregistrer une vente</button>';
   h+='<button class="full" onclick="ZK.go(\'attribuer\')" style="margin-bottom:12px">📤 Répartir à mon équipe</button>';
@@ -249,7 +249,7 @@ function dashCom(){
   h+='<div class="hero"><div class="sm" style="color:#fff;opacity:.9">Mon chiffre ce mois</div><div style="font-size:32px;font-weight:800;letter-spacing:-1px">'+money(monthRev(my))+'</div>'
     +'<div class="row" style="gap:20px;margin-top:12px"><div><div class="cap" style="color:#fff;opacity:.8">Aujourd\'hui</div><div class="bold">'+compact(sumT(salesToday(my)))+'</div></div><div><div class="cap" style="color:#fff;opacity:.8">Ventes 30j</div><div class="bold">'+inLast(my,30).length+'</div></div></div></div>';
   h+='<button class="full" onclick="ZK.go(\'vendre\')" style="margin-bottom:12px">🛒 Enregistrer une vente</button>';
-  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','primary','Mon stock',carriedOf(S.me.id)+' u.')+stat('💰','success','Chiffre 30j',compact(sumT(inLast(my,30))))+'</div>';
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','primary','Mon stock',carriedOf(S.me.id)+' u.','stock')+stat('💰','success','Chiffre 30j',compact(sumT(inLast(my,30))),'ventes')+'</div>';
   h+=remunCards();
   var lows=mine.filter(function(x){return x.qty<=3;}).length;
   h+='<div class="card" onclick="ZK.go(\'stock\')"><div class="row between"><div class="row" style="gap:10px">📦<div><div class="semi">Mon stock terrain</div><div class="cap">'+mine.length+' produit(s)'+(lows?' • '+lows+' faible(s)':'')+'</div></div></div><div class="h2">'+carriedOf(S.me.id)+'</div></div></div>';
