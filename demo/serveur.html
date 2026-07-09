@@ -4,170 +4,273 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#5A4BE0">
-<title>ZKA — Connexion au serveur partagé</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ZKA">
+<title>ZKA — Gestion de commerce</title>
 <style>
-  :root{--violet:#5A4BE0;--bg:#0f1017;--surface:#15171f;--border:#262a38;--text:#f3f4fa;--t2:#a7acc2;--faint:#6b7189;--ok:#2ec97d;--okS:#0f2a1e;--warn:#fdb022;--warnS:#2c2110;--danger:#f97066;--dangerS:#2c1614;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+  :root{--violet:#5A4BE0;--violet2:#7C5CEC;--bg:#0f1017;--surface:#15171f;--alt:#1c1e29;--sunken:#0e0f16;--border:#262a38;--text:#f3f4fa;--t2:#a7acc2;--faint:#6b7189;--ok:#2ec97d;--okS:#0f2a1e;--warn:#fdb022;--warnS:#2c2110;--danger:#f97066;--dangerS:#2c1614;--info:#53b1fd;--infoS:#0e2033;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--text)}
-  #app{max-width:460px;margin:0 auto;min-height:100dvh;padding:18px}
-  .grad{background:linear-gradient(140deg,#6d5bf0,#8b5cf6 60%,#a855f7);border-radius:20px;padding:22px;color:#fff;margin-bottom:16px}
-  .h1{font-size:24px;font-weight:800;letter-spacing:-.5px}
-  .sm{font-size:13px;color:var(--t2)}.cap{font-size:11px;color:var(--faint)}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px}
+  #app{max-width:460px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
+  .content{flex:1;overflow-y:auto;padding:16px;padding-bottom:24px}
+  .grad{background:linear-gradient(140deg,#6d5bf0,#8b5cf6 60%,#a855f7);border-radius:18px;padding:18px;color:#fff;margin-bottom:14px}
+  .h1{font-size:22px;font-weight:800;letter-spacing:-.5px}.h2{font-size:18px;font-weight:800}
+  .sm{font-size:13px;color:var(--t2)}.cap{font-size:11px;color:var(--faint)}.bold{font-weight:700}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
   label{display:block;font-size:12px;font-weight:600;color:var(--t2);margin:0 0 6px}
-  input{width:100%;background:#0e0f16;border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;padding:13px 14px;outline:none}
-  input:focus{border-color:var(--violet)}
-  button{font-family:inherit;cursor:pointer;border:none;border-radius:12px;font-weight:700;font-size:15px;padding:13px 16px;width:100%;background:var(--violet);color:#fff}
-  button.sec{background:#1c1e29;color:var(--text)}
-  button:active{opacity:.85}
-  .row{display:flex;gap:10px;align-items:center}
+  input,select{width:100%;background:var(--sunken);border:1.5px solid var(--border);border-radius:11px;color:var(--text);font-size:15px;padding:12px 13px;outline:none}
+  input:focus,select:focus{border-color:var(--violet)}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:11px;font-weight:700;font-size:15px;padding:12px 15px;background:var(--violet);color:#fff}
+  button.sec{background:var(--alt);color:var(--text)}button.ghost{background:transparent;border:1.5px solid var(--border);color:var(--text)}
+  button:active{opacity:.85}button:disabled{opacity:.5}
+  .full{width:100%}
+  .row{display:flex;align-items:center;gap:10px}.between{justify-content:space-between}.wrap{flex-wrap:wrap}
+  .grow{flex:1;min-width:0}.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px}
-  .ok{background:var(--okS);color:var(--ok)}.warn{background:var(--warnS);color:var(--warn)}.dg{background:var(--dangerS);color:var(--danger)}
-  .lrow{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--border)}
-  .lrow:first-child{border-top:none}
-  code{background:#0e0f16;border:1px solid var(--border);border-radius:6px;padding:1px 6px;font-size:12px}
+  .ok{background:var(--okS);color:var(--ok)}.warn{background:var(--warnS);color:var(--warn)}.dg{background:var(--dangerS);color:var(--danger)}.inf{background:var(--infoS);color:var(--info)}.neu{background:var(--alt);color:var(--t2)}
+  .lrow{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--border)}.lrow:first-child{border-top:none}
+  .stepper{display:flex;align-items:center;gap:8px}
+  .rbtn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:18px;padding:0;flex:none}
+  .tabbar{display:flex;border-top:1px solid var(--border);background:var(--surface)}
+  .tab{flex:1;background:none;color:var(--faint);border-radius:0;padding:10px 2px;font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .tab.on{color:var(--violet)}
+  .chip{display:inline-block;font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:999px;border:1px solid var(--border);color:var(--t2);background:var(--surface);white-space:nowrap}
+  .chip.on{background:var(--violet);color:#fff;border-color:var(--violet)}
+  .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}.chips::-webkit-scrollbar{display:none}
+  .seg{display:flex;background:var(--sunken);border-radius:10px;padding:3px;gap:3px;margin-bottom:12px}
+  .seg button{flex:1;background:none;color:var(--t2);padding:8px;border-radius:8px;font-size:13px}
+  .seg button.on{background:var(--surface);color:var(--text)}
+  .toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:50;max-width:88%;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .center{text-align:center}.mut{margin-top:8px}.mb0{margin-bottom:0}
   a{color:#b6a7ff}
-  .mut{margin-top:8px}
 </style>
 </head>
 <body>
 <script src="./config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <div id="app"></div>
+<div class="toast" id="toast"></div>
 <script>
 (function(){
-  "use strict";
-  var app = document.getElementById('app');
-  var cfg = (window.ZKA_SUPABASE) || {};
-  var sb = null, me = null, state = { products: [], holdings: [] };
+"use strict";
+var app=document.getElementById('app'),toastEl=document.getElementById('toast');
+var cfg=window.ZKA_SUPABASE||{}, sb=null;
+var S={me:null,products:[],holdings:[],profiles:[],movements:[],sales:[],route:'accueil',sel:{},cart:{}};
 
-  function esc(s){ return (''+ (s==null?'':s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function h(html){ app.innerHTML = html; }
-  function header(sub){ return '<div class="grad"><div class="cap" style="opacity:.85">ZKA</div><div class="h1">Serveur partagé</div><div class="sm" style="color:#fff;opacity:.9;margin-top:4px">'+sub+'</div></div>'; }
+function esc(s){return (''+(s==null?'':s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function money(n){return (Math.round(n||0)).toLocaleString('fr-FR')+' FCFA';}
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){toastEl.classList.remove('show');},2200);}
+var tt=null;function toastErr(e){toast('⚠ '+((e&&e.message)||e));}
 
-  // --- Aucun réglage : montrer les instructions ---
-  function showSetup(){
-    h(header('Configuration requise')
-      + '<div class="card"><b>Pas encore connecté à un serveur.</b>'
-      + '<div class="sm mut">Pour partager les données entre les téléphones, renseignez vos 2 valeurs publiques Supabase dans le fichier <code>demo/config.js</code> :</div>'
-      + '<div class="sm mut">1. Créez un projet gratuit sur <a href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a>.</div>'
-      + '<div class="sm mut">2. SQL Editor → collez <code>supabase/schema.sql</code> → Run.</div>'
-      + '<div class="sm mut">3. Project Settings → API → copiez <code>Project URL</code> et la clé <code>anon public</code>.</div>'
-      + '<div class="sm mut">4. Collez-les dans <code>demo/config.js</code> (ou envoyez-les moi).</div>'
-      + '</div>'
-      + '<div class="card"><div class="cap">Voir le guide complet : <code>supabase/README.md</code></div></div>');
+/* ---------- Modèle ---------- */
+function role(){return S.me?S.me.role:null;}
+function prodById(id){for(var i=0;i<S.products.length;i++)if(S.products[i].id===id)return S.products[i];return null;}
+function profById(id){for(var i=0;i<S.profiles.length;i++)if(S.profiles[i].id===id)return S.profiles[i];return null;}
+function heldQty(holderId,pid){for(var i=0;i<S.holdings.length;i++){var h=S.holdings[i];if(h.holder_id===holderId&&h.product_id===pid)return h.qty;}return 0;}
+function holdingListOf(holderId){var out=[];S.holdings.forEach(function(h){if(h.holder_id===holderId&&h.qty>0){var p=prodById(h.product_id);if(p)out.push({p:p,qty:h.qty});}});return out.sort(function(a,b){return a.p.name.localeCompare(b.p.name);});}
+function carriedOf(holderId){var t=0;S.holdings.forEach(function(h){if(h.holder_id===holderId)t+=h.qty;});return t;}
+function commerciauxOf(rid){return S.profiles.filter(function(p){return p.role==='commercial'&&p.mgr===rid;});}
+function responsables(){return S.profiles.filter(function(p){return p.role==='responsable';});}
+function commerciaux(){return S.profiles.filter(function(p){return p.role==='commercial';});}
+function eligibleHolders(){if(role()==='boss')return responsables().concat(commerciaux());if(role()==='responsable')return commerciauxOf(S.me.id);return [];}
+function warehouseTotal(){return S.products.reduce(function(s,p){return s+(p.stock||0);},0);}
+function fieldTotalOf(pid){var t=0;S.profiles.forEach(function(p){if(p.role!=='boss')t+=heldQty(p.id,pid);});return t;}
+function roleLabel(r){return r==='boss'?'Direction':r==='responsable'?'Responsable':r==='commercial'?'Commercial':'—';}
+
+/* ---------- Données ---------- */
+async function loadAll(){
+  var r=await Promise.all([
+    sb.from('products').select('*').order('name'),
+    sb.from('profiles').select('*'),
+    sb.from('holdings').select('*'),
+    sb.from('movements').select('*').order('at',{ascending:false}).limit(40),
+    sb.from('sales').select('*, sale_items(*)').order('created_at',{ascending:false}).limit(60)
+  ]);
+  for(var i=0;i<r.length;i++){ if(r[i].error){ toastErr(r[i].error); } }
+  S.products=r[0].data||[]; S.profiles=r[1].data||[]; S.holdings=r[2].data||[];
+  S.movements=r[3].data||[]; S.sales=r[4].data||[];
+}
+var _rt=null;
+function subscribe(){
+  if(_rt)return;
+  _rt=sb.channel('zka').on('postgres_changes',{event:'*',schema:'public'},function(){ clearTimeout(subscribe._t); subscribe._t=setTimeout(refresh,300); }).subscribe();
+}
+async function refresh(){ await loadAll(); render(); }
+
+/* ---------- Auth ---------- */
+async function afterLogin(){
+  var u=(await sb.auth.getUser()).data.user;
+  var pr=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();
+  if(pr.error){ renderFatal(pr.error.message); return; }
+  S.me=pr.data||{id:u.id,name:u.email,role:'—'};
+  await loadAll(); subscribe(); S.route='accueil'; render();
+}
+async function doLogin(){
+  var email=(document.getElementById('email').value||'').trim();
+  var pw=document.getElementById('pw').value||'';
+  var b=document.getElementById('btnLogin'); b.textContent='Connexion…'; b.disabled=true;
+  var res=await sb.auth.signInWithPassword({email:email,password:pw});
+  if(res.error){ renderLogin(res.error.message||'Identifiants incorrects'); return; }
+  await afterLogin();
+}
+async function logout(){ await sb.auth.signOut(); S.me=null; renderLogin(); }
+
+/* ---------- Écrans ---------- */
+function renderLogin(err){
+  app.innerHTML='<div class="content"><div class="grad"><div class="cap" style="opacity:.85">ZKA</div><div class="h1">Connexion</div><div class="sm" style="color:#fff;opacity:.9">Espace direction & équipe</div></div>'
+   +'<div class="card">'+(err?'<div class="badge dg" style="margin-bottom:10px">'+esc(err)+'</div>':'')
+   +'<label>Email</label><input id="email" type="email" autocapitalize="off" placeholder="vous@exemple.com">'
+   +'<label style="margin-top:12px">Mot de passe</label><input id="pw" type="password" placeholder="••••••••">'
+   +'<button class="full" style="margin-top:16px" id="btnLogin">Se connecter</button>'
+   +'<div class="cap mut">Comptes créés par la direction (Supabase → Authentication).</div></div></div>';
+  document.getElementById('btnLogin').onclick=doLogin;
+  document.getElementById('pw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+}
+function renderFatal(msg){ app.innerHTML='<div class="content"><div class="card"><span class="badge dg">Erreur</span><div class="sm mut">'+esc(msg)+'</div><button class="ghost full mut" onclick="ZK.logout()">Se déconnecter</button></div></div>'; }
+
+function tabsFor(){ if(role()==='boss')return [['accueil','Entrepôt'],['attribuer','Attribuer'],['terrain','Terrain'],['equipe','Équipe']];
+  if(role()==='responsable')return [['accueil','Ma réserve'],['attribuer','Attribuer'],['equipe','Équipe']];
+  return [['accueil','Mon stock'],['vendre','Vendre'],['ventes','Ventes']]; }
+
+function render(){
+  if(!S.me){ renderLogin(); return; }
+  var body;
+  switch(S.route){
+    case 'attribuer': body=viewAttribuer(); break;
+    case 'terrain': body=viewTerrain(); break;
+    case 'equipe': body=viewEquipe(); break;
+    case 'vendre': body=viewVendre(); break;
+    case 'ventes': body=viewVentes(); break;
+    default: body=viewAccueil();
   }
+  var tabs=tabsFor();
+  var bar='<div class="tabbar">'+tabs.map(function(t){return '<button class="tab '+(S.route===t[0]?'on':'')+'" onclick="ZK.go(\''+t[0]+'\')">'+t[1]+'</button>';}).join('')+'</div>';
+  app.innerHTML='<div class="content">'+body+'</div>'+bar;
+}
 
-  function showError(msg){
-    h(header('Erreur') + '<div class="card"><span class="badge dg">Problème</span><div class="sm mut">'+esc(msg)+'</div></div>');
-  }
+function topbar(title,sub){return '<div class="grad"><div class="row between"><div><div class="cap" style="opacity:.85">'+esc(sub||roleLabel(role()))+'</div><div class="h1">'+esc(title)+'</div></div><button class="ghost" style="border-color:rgba(255,255,255,.4);color:#fff;padding:8px 12px" onclick="ZK.logout()">Quitter</button></div><div class="sm" style="color:#fff;opacity:.9;margin-top:6px">'+esc(S.me.name)+' 🟢 en direct</div></div>';}
 
-  // --- Écran de connexion (email + mot de passe) ---
-  function showLogin(errMsg){
-    h(header('Connectez-vous')
-      + '<div class="card">'
-      + (errMsg ? '<div class="badge dg" style="margin-bottom:10px">'+esc(errMsg)+'</div>' : '')
-      + '<label>Email</label><input id="email" type="email" autocapitalize="off" placeholder="vous@exemple.com">'
-      + '<label style="margin-top:12px">Mot de passe</label><input id="pw" type="password" placeholder="••••••••">'
-      + '<button id="btnLogin" style="margin-top:16px">Se connecter</button>'
-      + '<div class="cap mut">Les comptes sont créés par la direction dans Supabase → Authentication.</div>'
-      + '</div>');
-    document.getElementById('btnLogin').onclick = doLogin;
-    document.getElementById('pw').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
-  }
+/* ----- Accueil selon rôle ----- */
+function viewAccueil(){ if(role()==='boss')return viewEntrepot(); return viewMonStock(); }
 
-  async function doLogin(){
-    var email = document.getElementById('email').value.trim();
-    var pw = document.getElementById('pw').value;
-    var btn = document.getElementById('btnLogin'); btn.textContent = 'Connexion…'; btn.disabled = true;
-    var res = await sb.auth.signInWithPassword({ email: email, password: pw });
-    if (res.error){ showLogin(res.error.message || 'Identifiants incorrects'); return; }
-    await afterLogin();
-  }
+/* Boss : entrepôt central */
+function viewEntrepot(){
+  var h=topbar('Entrepôt central','Direction');
+  h+='<div class="card row"><div class="grow"><div class="h2">'+S.products.length+'</div><div class="cap">produits</div></div><div class="grow"><div class="h2">'+warehouseTotal()+'</div><div class="cap">unités entrepôt</div></div><div class="grow"><div class="h2">'+commerciaux().concat(responsables()).reduce(function(s,p){return s+carriedOf(p.id);},0)+'</div><div class="cap">sur le terrain</div></div></div>';
+  h+='<button class="full" onclick="ZK.go(\'attribuer\')">📦 Attribuer du stock à un membre</button>';
+  h+='<div class="card mut"><label>Ajouter un produit à l\'entrepôt</label><input id="np_name" placeholder="Nom du produit"><div class="row mut"><input id="np_price" type="number" placeholder="Prix (FCFA)"><input id="np_stock" type="number" placeholder="Stock"></div><button class="sec full mut" onclick="ZK.addProduct()">Ajouter le produit</button></div>';
+  h+='<div class="h2 mut" style="margin:14px 0 8px">Produits</div>';
+  h+='<div class="card">'+S.products.map(function(p){var out=p.stock===0,low=p.stock<=(p.reorder||0);return '<div class="lrow"><div class="grow"><div class="bold ell">'+esc(p.emoji||'')+' '+esc(p.name)+'</div><div class="cap">'+esc(p.cat)+' • terrain : '+fieldTotalOf(p.id)+'</div></div><div class="stepper"><button class="rbtn sec" onclick="ZK.adjust(\''+p.id+'\',-1)">−</button><div class="bold" style="min-width:60px;text-align:center">'+p.stock+'</div><button class="rbtn" onclick="ZK.adjust(\''+p.id+'\',1)">+</button></div></div>';}).join('')+'</div>';
+  return h;
+}
 
-  var diag = {};
-  async function afterLogin(){
-    var sess = await sb.auth.getSession();
-    var user = (sess.data && sess.data.session) ? sess.data.session.user : null;
-    if (!user){ var gu = await sb.auth.getUser(); user = gu.data ? gu.data.user : null; }
-    diag.hasSession = !!(sess.data && sess.data.session);
-    diag.email = user ? user.email : '(aucun)';
-    diag.uid = user ? user.id : '(aucun)';
-    var prof = await sb.from('profiles').select('*').eq('id', user ? user.id : '00000000-0000-0000-0000-000000000000').maybeSingle();
-    diag.profErr = prof.error ? (prof.error.message || JSON.stringify(prof.error)) : null;
-    diag.profFound = !!prof.data;
-    me = prof.data || { name: (user && user.email) || 'Utilisateur', role: '—' };
-    await syncAll();
-    subscribeRealtime();
-    render();
-  }
+/* Responsable/Commercial : mon stock */
+function viewMonStock(){
+  var mine=holdingListOf(S.me.id),lows=mine.filter(function(x){return x.qty<=3;}).length;
+  var h=topbar(role()==='responsable'?'Ma réserve':'Mon stock',roleLabel(role()));
+  h+='<div class="card row"><div class="grow"><div class="h2">'+carriedOf(S.me.id)+'</div><div class="cap">unités détenues</div></div><div class="grow"><div class="h2">'+mine.length+'</div><div class="cap">références</div></div><div class="grow"><div class="h2">'+money(mine.reduce(function(s,x){return s+x.qty*x.p.price;},0))+'</div><div class="cap">valeur</div></div></div>';
+  if(role()==='responsable')h+='<button class="full" onclick="ZK.go(\'attribuer\')">📦 Répartir à mon équipe</button>';
+  if(lows>0)h+='<div class="card" style="background:var(--warnS);border-color:transparent"><span class="badge warn">⚠ '+lows+' produit(s) en quantité faible</span></div>';
+  h+='<div class="h2 mut" style="margin:14px 0 8px">Ce que je détiens</div>';
+  if(!mine.length)h+='<div class="card sm center">Aucun stock ne vous a été attribué pour l\'instant.</div>';
+  else h+='<div class="card">'+mine.map(function(x){var low=x.qty<=3;return '<div class="lrow"><div class="grow"><div class="bold ell">'+esc(x.p.emoji||'')+' '+esc(x.p.name)+'</div><div class="cap">'+esc(x.p.cat)+' • '+money(x.p.price)+'</div></div><div class="bold">'+x.qty+' '+esc(x.p.unit||'')+'</div><span class="badge '+(low?'warn':'ok')+'">'+(low?'faible':'ok')+'</span></div>';}).join('')+'</div>';
+  return h;
+}
 
-  async function syncAll(){
-    var p = await sb.from('products').select('*').order('name');
-    var hd = await sb.from('holdings').select('*');
-    diag.prodErr = p.error ? (p.error.message || JSON.stringify(p.error)) : null;
-    diag.prodCount = (p.data || []).length;
-    state.products = p.data || [];
-    state.holdings = hd.data || [];
-  }
+/* Attribuer (boss & responsable) */
+function viewAttribuer(){
+  var holders=eligibleHolders();
+  var h=topbar('Attribuer du stock','Source : '+(role()==='boss'?'entrepôt central':'ma réserve'));
+  if(!holders.length){ return h+'<div class="card sm center">Aucun destinataire. '+(role()==='responsable'?'Aucun commercial n\'est rattaché à vous.':'Créez d\'abord des membres dans l\'onglet Équipe.')+'</div>'; }
+  var hid=S.sel.holder; if(!hid||!holders.some(function(x){return x.id===hid;}))hid=holders[0].id; S.sel.holder=hid;
+  var holder=profById(hid);
+  h+='<label>Destinataire</label><div class="chips mut" style="margin-bottom:12px">'+holders.map(function(a){return '<button class="chip '+(a.id===hid?'on':'')+'" onclick="ZK.selHolder(\''+a.id+'\')">'+esc((a.name||'').split(' ')[0]||a.name)+' · '+(a.role==='responsable'?'resp':'com')+'</button>';}).join('')+'</div>';
+  h+='<div class="card row between"><div><div class="bold">'+esc(holder.name)+'</div><div class="cap">'+roleLabel(holder.role)+' • détient '+carriedOf(hid)+' u.</div></div><span class="badge inf">+ attribuer / − reprendre</span></div>';
+  var srcQty=function(pid){return role()==='boss'?(prodById(pid)||{}).stock||0:heldQty(S.me.id,pid);};
+  h+='<div class="card">'+S.products.map(function(p){var avail=srcQty(p.id),held=heldQty(hid,p.id);
+    return '<div class="lrow"><div class="grow"><div class="bold ell">'+esc(p.emoji||'')+' '+esc(p.name)+'</div><div class="cap">'+(role()==='boss'?'entrepôt':'ma réserve')+' : '+avail+' • détenu : '+held+'</div></div><div class="stepper"><button class="rbtn sec" '+(held<=0?'disabled':'')+' onclick="ZK.assign(\''+hid+'\',\''+p.id+'\',-1)">−</button><div class="bold" style="min-width:26px;text-align:center">'+held+'</div><button class="rbtn" '+(avail<=0?'disabled':'')+' onclick="ZK.assign(\''+hid+'\',\''+p.id+'\',1)">+</button></div></div>';}).join('')+'</div>';
+  return h;
+}
 
-  var channel = null;
-  function subscribeRealtime(){
-    if (channel) return;
-    channel = sb.channel('zka-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'holdings' }, refresh)
-      .subscribe();
-  }
-  var t = null;
-  function refresh(){ clearTimeout(t); t = setTimeout(async function(){ await syncAll(); render(); }, 250); }
-
-  function render(){
-    var totalStock = state.products.reduce(function(s,p){ return s + (p.stock||0); }, 0);
-    var held = {};
-    state.holdings.forEach(function(x){ held[x.product_id] = (held[x.product_id]||0) + (x.qty||0); });
-    var rows = state.products.map(function(p){
-      return '<div class="lrow"><div><div>'+esc(p.name)+'</div><div class="cap">'+esc(p.cat)+' • détenu sur le terrain : '+(held[p.id]||0)+'</div></div>'
-        + '<div style="text-align:right"><div>'+(p.stock||0)+' <span class="cap">entrepôt</span></div></div></div>';
-    }).join('');
-    h(header('Connecté — données en direct 🟢')
-      + '<div class="card"><div class="row" style="justify-content:space-between"><div><b>'+esc(me.name)+'</b><div class="cap">Rôle : '+esc(me.role)+'</div></div><span class="badge ok">temps réel</span></div></div>'
-      + '<div class="card"><div class="cap" style="margin-bottom:6px">Diagnostic</div>'
-        + '<div class="lrow"><span>Session active</span><span class="badge '+(diag.hasSession?'ok':'dg')+'">'+(diag.hasSession?'oui':'non')+'</span></div>'
-        + '<div class="lrow"><span>Email</span><span class="cap">'+esc(diag.email)+'</span></div>'
-        + '<div class="lrow"><span>Profil trouvé</span><span class="badge '+(diag.profFound?'ok':'dg')+'">'+(diag.profFound?'oui':'NON')+'</span></div>'
-        + (diag.profErr ? '<div class="lrow"><span>Erreur profil</span><span class="cap" style="color:var(--danger)">'+esc(diag.profErr)+'</span></div>' : '')
-        + '<div class="lrow"><span>Produits lus</span><span class="badge '+(diag.prodCount>0?'ok':'warn')+'">'+(diag.prodCount!=null?diag.prodCount:'?')+'</span></div>'
-        + (diag.prodErr ? '<div class="lrow"><span>Erreur produits</span><span class="cap" style="color:var(--danger)">'+esc(diag.prodErr)+'</span></div>' : '')
-      + '</div>'
-      + '<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px"><b>Entrepôt central</b><span class="cap">'+state.products.length+' produits • '+totalStock+' u.</span></div>'
-      + (rows || '<div class="sm">Aucun produit. '+(me.role==='boss'?'Ajoutez-en un ci-dessous.':'La direction doit en ajouter.')+'</div>')
-      + '</div>'
-      + (me.role === 'boss'
-          ? '<div class="card"><label>Ajouter un produit de test (prouve l\'écriture + la synchro)</label><input id="pname" placeholder="Nom du produit"><div class="row mut"><input id="pstock" type="number" placeholder="Stock" style="flex:1"><button id="btnAdd" style="flex:1">Ajouter</button></div></div>'
-          : '')
-      + '<button class="sec" id="btnOut">Se déconnecter</button>');
-    document.getElementById('btnOut').onclick = async function(){ await sb.auth.signOut(); me=null; showLogin(); };
-    var add = document.getElementById('btnAdd');
-    if (add) add.onclick = async function(){
-      var name = document.getElementById('pname').value.trim();
-      var stock = parseInt(document.getElementById('pstock').value, 10) || 0;
-      if (!name) return;
-      add.textContent = '…'; add.disabled = true;
-      var r = await sb.from('products').insert({ name: name, cat: 'Test', price: 0, cost: 0, stock: stock, reorder: 5, unit: 'pièce', emoji: '🧪' });
-      if (r.error) alert('Erreur : ' + r.error.message);
-      await syncAll(); render();
-    };
-  }
-
-  // --- Démarrage ---
-  if (!cfg.url || !cfg.anonKey){ showSetup(); return; }
-  if (!window.supabase || !window.supabase.createClient){ showError('La librairie Supabase n\'a pas pu être chargée (connexion internet ?).'); return; }
-  sb = window.supabase.createClient(cfg.url, cfg.anonKey);
-  sb.auth.getSession().then(function(res){
-    if (res.data && res.data.session) afterLogin();
-    else showLogin();
+/* Terrain (boss) : qui détient quoi */
+function viewTerrain(){
+  var h=topbar('Stock sur le terrain','Vue direction');
+  var all=responsables().concat(commerciaux());
+  if(!all.length)return h+'<div class="card sm center">Aucun membre. Créez-les dans l\'onglet Équipe.</div>';
+  all.forEach(function(a){var list=holdingListOf(a.id);
+    h+='<div class="card"><div class="row between" onclick="ZK.selHolderGo(\''+a.id+'\')"><div class="bold">'+esc(a.name)+' <span class="cap">('+roleLabel(a.role)+')</span></div><span class="badge neu">'+carriedOf(a.id)+' u.</span></div>'
+     +(list.length?'<div style="margin-top:6px">'+list.map(function(x){return '<div class="lrow"><div class="grow sm">'+esc(x.p.name)+'</div><div class="bold">'+x.qty+'</div></div>';}).join('')+'</div>':'<div class="cap mut">rien détenu</div>')+'</div>';
   });
+  return h;
+}
+
+/* Équipe (boss) : définir rôles & rattachements */
+function viewEquipe(){
+  var h=topbar('Équipe',role()==='boss'?'Direction':'Responsable');
+  if(role()==='responsable'){ var team=commerciauxOf(S.me.id);
+    h+='<div class="card sm">Vos commerciaux. Pour en ajouter, contactez la direction.</div>';
+    h+='<div class="card">'+(team.length?team.map(function(c){return '<div class="lrow"><div class="grow"><div class="bold">'+esc(c.name)+'</div><div class="cap">détient '+carriedOf(c.id)+' u.</div></div><span class="badge neu">commercial</span></div>';}).join(''):'<div class="sm center">Aucun commercial rattaché.</div>')+'</div>';
+    return h;
+  }
+  h+='<div class="card sm">Créez les comptes (email + mot de passe) dans <b>Supabase → Authentication</b>. Ils apparaissent ici en « commercial » ; réglez ensuite leur rôle et, pour un commercial, son responsable.</div>';
+  var others=S.profiles.filter(function(p){return p.id!==S.me.id;});
+  h+='<div class="card">'+(others.length?others.map(function(p){
+    var mgrOpts=responsables().map(function(r){return '<option value="'+r.id+'" '+(p.mgr===r.id?'selected':'')+'>'+esc((r.name||'').split(' ')[0])+'</option>';}).join('');
+    return '<div class="lrow" style="flex-wrap:wrap"><div class="grow"><div class="bold ell">'+esc(p.name)+'</div><div class="cap">'+esc(p.email||'')+'</div></div>'
+      +'<select style="width:auto;padding:8px" onchange="ZK.setRole(\''+p.id+'\',this.value)">'+['boss','responsable','commercial'].map(function(r){return '<option value="'+r+'" '+(p.role===r?'selected':'')+'>'+roleLabel(r)+'</option>';}).join('')+'</select>'
+      +(p.role==='commercial'?'<select style="width:auto;padding:8px" onchange="ZK.setMgr(\''+p.id+'\',this.value)"><option value="">— resp. —</option>'+mgrOpts+'</select>':'')
+      +'</div>';
+  }).join(''):'<div class="sm center">Aucun autre compte. Créez-les dans Supabase → Authentication.</div>')+'</div>';
+  return h;
+}
+
+/* Vendre (commercial) */
+function viewVendre(){
+  var mine=holdingListOf(S.me.id);
+  var items=[];Object.keys(S.cart).forEach(function(id){if(S.cart[id]>0){var p=prodById(id);if(p)items.push({p:p,q:S.cart[id]});}});
+  var total=items.reduce(function(s,x){return s+x.q*x.p.price;},0),count=items.reduce(function(s,x){return s+x.q;},0);
+  var h=topbar('Enregistrer une vente','Commercial');
+  if(!mine.length)return h+'<div class="card sm center">Vous ne détenez aucun stock à vendre. Demandez à votre responsable.</div>';
+  h+='<div class="card">'+mine.map(function(x){var q=S.cart[x.p.id]||0,atMax=q>=x.qty;return '<div class="lrow"><div class="grow"><div class="bold ell">'+esc(x.p.emoji||'')+' '+esc(x.p.name)+'</div><div class="cap">'+money(x.p.price)+' • j\'en ai '+x.qty+'</div></div><div class="stepper"><button class="rbtn sec" '+(q<=0?'disabled':'')+' onclick="ZK.cart(\''+x.p.id+'\',-1)">−</button><div class="bold" style="min-width:24px;text-align:center">'+q+'</div><button class="rbtn" '+(atMax?'disabled':'')+' onclick="ZK.cart(\''+x.p.id+'\',1)">+</button></div></div>';}).join('')+'</div>';
+  h+='<label>Client (optionnel)</label><input id="v_cust" placeholder="Nom du client" value="'+esc(S.sel.cust||'')+'" oninput="ZK.setCust(this.value)">';
+  h+='<label class="mut">Paiement</label><div class="seg">'+['espèces','mobile','carte','crédit'].map(function(m){return '<button class="'+((S.sel.pay||'espèces')===m?'on':'')+'" onclick="ZK.setPay(\''+m+'\')">'+m+'</button>';}).join('')+'</div>';
+  h+='<div class="card row between"><div class="sm">'+count+' article(s)</div><div class="h2">'+money(total)+'</div></div>';
+  h+='<button class="full" '+(items.length?'':'disabled')+' onclick="ZK.sell()">Valider la vente</button>';
+  return h;
+}
+
+/* Ventes (commercial) */
+function viewVentes(){
+  var mine=S.sales.filter(function(s){return s.seller_id===S.me.id;});
+  var h=topbar('Mes ventes','Commercial');
+  h+='<div class="card row"><div class="grow"><div class="h2">'+mine.length+'</div><div class="cap">ventes</div></div><div class="grow"><div class="h2">'+money(mine.reduce(function(s,x){return s+(x.total||0);},0))+'</div><div class="cap">chiffre</div></div></div>';
+  if(!mine.length)return h+'<div class="card sm center">Aucune vente enregistrée.</div>';
+  h+='<div class="card">'+mine.slice(0,40).map(function(s){var d=new Date(s.created_at);return '<div class="lrow"><div class="grow"><div class="bold ell">'+esc(s.customer||'Client comptant')+'</div><div class="cap">'+esc(s.ref||'')+' • '+d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div></div><div class="bold" style="color:var(--ok)">'+money(s.total)+'</div></div>';}).join('')+'</div>';
+  return h;
+}
+
+/* ---------- Actions ---------- */
+window.ZK={
+  go:function(r){S.route=r;render();window.scrollTo(0,0);},
+  logout:logout,
+  selHolder:function(id){S.sel.holder=id;render();},
+  selHolderGo:function(id){S.sel.holder=id;S.route='attribuer';render();window.scrollTo(0,0);},
+  setPay:function(m){S.sel.pay=m;render();},
+  setCust:function(v){S.sel.cust=v;},
+  cart:function(id,d){var max=heldQty(S.me.id,id);var n=Math.min(max,Math.max(0,(S.cart[id]||0)+d));if(n===0)delete S.cart[id];else S.cart[id]=n;render();},
+  assign:async function(holderId,pid,qty){var r=await sb.rpc('assign_stock',{p_holder:holderId,p_product:pid,p_qty:qty});if(r.error){toastErr(r.error);return;}if(!r.data){toast(qty>0?'Source insuffisante':'Rien à reprendre');}await refresh();},
+  adjust:async function(pid,d){var p=prodById(pid);if(!p)return;var v=Math.max(0,(p.stock||0)+d);var r=await sb.from('products').update({stock:v}).eq('id',pid);if(r.error){toastErr(r.error);return;}await refresh();},
+  addProduct:async function(){var name=(document.getElementById('np_name').value||'').trim();var price=parseFloat(document.getElementById('np_price').value)||0;var stock=parseInt(document.getElementById('np_stock').value,10)||0;if(!name){toast('Nom requis');return;}var r=await sb.from('products').insert({name:name,cat:'Divers',price:price,cost:0,stock:stock,reorder:5,unit:'pièce',emoji:'📦'});if(r.error){toastErr(r.error);return;}toast('Produit ajouté');await refresh();},
+  sell:async function(){var items=[];Object.keys(S.cart).forEach(function(id){if(S.cart[id]>0)items.push({product_id:id,quantity:S.cart[id]});});if(!items.length){toast('Ajoutez un produit');return;}var r=await sb.rpc('record_sale',{p_items:items,p_pay:S.sel.pay||'espèces',p_customer:S.sel.cust||null});if(r.error){toastErr(r.error);return;}S.cart={};S.sel.cust='';toast('Vente enregistrée ✅');S.route='ventes';await refresh();},
+  setRole:async function(id,r){var res=await sb.from('profiles').update({role:r}).eq('id',id);if(res.error){toastErr(res.error);return;}toast('Rôle mis à jour');await refresh();},
+  setMgr:async function(id,m){var res=await sb.from('profiles').update({mgr:m||null}).eq('id',id);if(res.error){toastErr(res.error);return;}toast('Rattachement mis à jour');await refresh();}
+};
+
+/* ---------- Démarrage ---------- */
+if(!cfg.url||!cfg.anonKey){ app.innerHTML='<div class="content"><div class="card"><b>Serveur non configuré.</b><div class="sm mut">Renseignez vos clés Supabase dans <code>demo/config.js</code>.</div></div></div>'; }
+else if(!window.supabase||!window.supabase.createClient){ app.innerHTML='<div class="content"><div class="card"><span class="badge dg">Hors ligne</span><div class="sm mut">La librairie Supabase n\'a pas pu être chargée (vérifiez la connexion internet).</div></div></div>'; }
+else{ sb=window.supabase.createClient(cfg.url,cfg.anonKey); sb.auth.getSession().then(function(res){ if(res.data&&res.data.session)afterLogin(); else renderLogin(); }); }
 })();
 </script>
 </body>
