@@ -20,6 +20,10 @@ le boss attribue du stock → c'est enregistré en ligne → le commercial le vo
 2. **Créer la base**
    - Dans le projet : menu **SQL Editor** → *New query*.
    - Copiez tout le contenu de [`schema.sql`](./schema.sql), collez, cliquez **Run**.
+   - Puis, dans une nouvelle requête, exécutez aussi [`finances.sql`](./finances.sql)
+     (suivi des dépenses, réception de stock, bénéfices).
+   - Si une base existait déjà avant le correctif RLS, exécutez également
+     [`fix-rls.sql`](./fix-rls.sql).
    - S'il y a une erreur, envoyez-la moi : je corrige.
 
 3. **Récupérer les 2 valeurs publiques** (sans danger à partager)
