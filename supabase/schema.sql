@@ -221,6 +221,19 @@ begin
 end;
 $$;
 
+-- Rôle de l'utilisateur courant, lu SANS déclencher la RLS (security definer).
+-- Indispensable pour éviter la récursion infinie dans les politiques ci-dessous.
+create or replace function public.my_role()
+returns text
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select role from public.profiles where id = auth.uid();
+$$;
+grant execute on function public.my_role() to authenticated, anon;
+
 -- =====================================================================
 -- Sécurité (Row Level Security)
 -- Lecture partagée entre membres connectés ; écritures sensibles passées
@@ -239,14 +252,14 @@ create policy "profiles_read"        on public.profiles for select to authentica
 create policy "profiles_update_self" on public.profiles for update to authenticated
   using (id = auth.uid()) with check (id = auth.uid());
 create policy "profiles_boss_all"    on public.profiles for all to authenticated
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'boss'))
-  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'boss'));
+  using (public.my_role() = 'boss')
+  with check (public.my_role() = 'boss');
 
 -- Produits : lecture pour tous les connectés ; modification réservée au boss
 create policy "products_read"     on public.products for select to authenticated using (true);
 create policy "products_boss_cud" on public.products for all to authenticated
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'boss'))
-  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'boss'));
+  using (public.my_role() = 'boss')
+  with check (public.my_role() = 'boss');
 
 -- Stock détenu / mouvements / ventes : lecture partagée (les écritures passent par les fonctions SECURITY DEFINER)
 create policy "holdings_read"   on public.holdings   for select to authenticated using (true);
