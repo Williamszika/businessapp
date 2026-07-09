@@ -66,6 +66,7 @@ var app=document.getElementById('app'),toastEl=document.getElementById('toast');
 var cfg=window.ZKA_SUPABASE||{}, sb=null;
 var S={me:null,products:[],holdings:[],profiles:[],movements:[],sales:[],expenses:[],route:'accueil',sel:{},cart:{},nu:{role:'commercial'},pf:{emoji:'📦'},rec:{},exp:{category:'Achat stock'},finTab:'benef'};
 var DAY=86400000,MO=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+var TEAM_OVERRIDE=0.02; // commission d'équipe du responsable (% des ventes de ses commerciaux)
 
 function esc(s){return (''+(s==null?'':s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function grp(x){return (''+x).replace(/\B(?=(\d{3})+(?!\d))/g,' ');}
@@ -88,7 +89,7 @@ function carriedOf(hid){var t=0;S.holdings.forEach(function(h){if(h.holder_id===
 function commerciauxOf(rid){return S.profiles.filter(function(p){return p.role==='commercial'&&p.mgr===rid;});}
 function responsables(){return S.profiles.filter(function(p){return p.role==='responsable';});}
 function commerciaux(){return S.profiles.filter(function(p){return p.role==='commercial';});}
-function eligibleHolders(){if(role()==='boss')return responsables().concat(commerciaux());if(role()==='responsable')return commerciauxOf(S.me.id);return [];}
+function eligibleHolders(){if(role()==='boss')return responsables();if(role()==='responsable')return commerciauxOf(S.me.id);return [];}
 function warehouseTotal(){return S.products.reduce(function(s,p){return s+(p.stock||0);},0);}
 function fieldTotal(){return S.profiles.filter(function(p){return p.role!=='boss';}).reduce(function(s,p){return s+carriedOf(p.id);},0);}
 function fieldTotalOf(pid){var t=0;S.profiles.forEach(function(p){if(p.role!=='boss')t+=heldQty(p.id,pid);});return t;}
@@ -164,7 +165,7 @@ function renderFatal(msg){app.innerHTML='<div class="content"><div class="card">
 
 function tabsFor(){
   if(role()==='boss')return [['accueil','🏠','Accueil'],['entrepot','📦','Entrepôt'],['attribuer','📤','Attribuer'],['finances','📊','Finances'],['equipe','👥','Équipe']];
-  if(role()==='responsable')return [['accueil','🏠','Accueil'],['attribuer','📤','Attribuer'],['equipe','👥','Équipe']];
+  if(role()==='responsable')return [['accueil','🏠','Accueil'],['stock','📦','Ma réserve'],['vendre','🛒','Vendre'],['attribuer','📤','Attribuer'],['equipe','👥','Équipe']];
   return [['accueil','🏠','Accueil'],['stock','📦','Mon stock'],['vendre','🛒','Vendre'],['ventes','🧾','Ventes']];
 }
 function render(){
@@ -217,7 +218,10 @@ function dashResp(){
   h+='<div class="hero"><div class="sm" style="color:#fff;opacity:.9">Chiffre de mon équipe ce mois</div><div style="font-size:30px;font-weight:800;letter-spacing:-1px">'+money(monthRev(ts))+'</div>'
     +'<div class="row" style="gap:20px;margin-top:12px"><div><div class="cap" style="color:#fff;opacity:.8">Aujourd\'hui</div><div class="bold">'+compact(sumT(salesToday(ts)))+'</div></div><div><div class="cap" style="color:#fff;opacity:.8">Commerciaux</div><div class="bold">'+team.length+'</div></div></div></div>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('🛒','primary','Ventes 30j',inLast(ts,30).length)+stat('📦','info','Ma réserve',carriedOf(S.me.id)+' u.')+'</div>';
-  var crR=S.me.comm||0;h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">💵</div><div><div class="semi">Ma commission d\'équipe</div><div class="cap">'+Math.round(crR*100)+' % des ventes de l\'équipe</div></div></div><div class="h2" style="color:var(--success)">'+money(crR*sumT(ts))+'</div></div>';
+  var myOwn=salesOf(S.me.id),crP=S.me.comm||0;
+  h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">💵</div><div><div class="semi">Ma commission (mes ventes)</div><div class="cap">'+Math.round(crP*100)+' % de mes ventes perso</div></div></div><div class="h2" style="color:var(--success)">'+money(crP*sumT(myOwn))+'</div></div>';
+  h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">👥</div><div><div class="semi">Commission d\'équipe</div><div class="cap">'+Math.round(TEAM_OVERRIDE*100)+' % des ventes de l\'équipe</div></div></div><div class="h2" style="color:var(--success)">'+money(TEAM_OVERRIDE*sumT(ts))+'</div></div>';
+  h+='<button class="full" onclick="ZK.go(\'vendre\')" style="margin-bottom:12px">🛒 Enregistrer une vente</button>';
   h+='<button class="full" onclick="ZK.go(\'attribuer\')" style="margin-bottom:12px">📤 Répartir à mon équipe</button>';
   h+=chartCard(ts);
   var rank=rankSellers(team);
@@ -366,7 +370,7 @@ function viewEquipe(){
       +'<label class="mut">Email</label><input id="nu_email" type="email" autocapitalize="off" value="'+esc(f.email||'')+'" placeholder="sara@exemple.com" oninput="ZK.nu(\'email\',this.value)">'
       +'<label class="mut">Mot de passe</label><input id="nu_pw" value="'+esc(f.pw||'')+'" placeholder="au moins 6 caractères" oninput="ZK.nu(\'pw\',this.value)">'
       +'<label class="mut">Poste</label><div class="seg">'+[['commercial','Commercial'],['responsable','Responsable'],['boss','Direction']].map(function(x){return '<button class="'+(f.role===x[0]?'on':'')+'" onclick="ZK.nu(\'role\',\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div>';
-    if(f.role==='commercial'){var rs=responsables();h+='<label>Responsable</label>'+(rs.length?'<div class="chips" style="margin-bottom:4px">'+rs.map(function(r){return '<button class="chip '+(f.mgr===r.id?'on':'')+'" onclick="ZK.nu(\'mgr\',\''+r.id+'\')">'+esc(firstName(r.name))+'</button>';}).join('')+'</div>':'<div class="cap">Aucun responsable — créez-en un d\'abord (ou laissez sans).</div>');}
+    if(f.role==='commercial'){var rs=responsables();h+='<label>Responsable (obligatoire)</label>'+(rs.length?'<div class="chips" style="margin-bottom:4px">'+rs.map(function(r){return '<button class="chip '+(f.mgr===r.id?'on':'')+'" onclick="ZK.nu(\'mgr\',\''+r.id+'\')">'+esc(firstName(r.name))+'</button>';}).join('')+'</div>':'<div class="cap" style="color:var(--danger)">⚠ Créez d\'abord un responsable — un commercial doit être rattaché à un responsable.</div>');}
     h+='<button class="full mut" id="btnCreate" onclick="ZK.createUser()">Créer le compte</button><div class="cap mut">Le compte est créé aussitôt ; la personne se connecte avec cet email + ce mot de passe.</div></div>';
   } else h+='<div class="card sm center">👑 Seul le président peut créer ou supprimer des comptes.</div>';
   // --- Équipe commerciale ---
@@ -502,7 +506,7 @@ window.ZK={
     S.exp={category:'Achat stock'};toast('Dépense ajoutée ✅');await refresh();},
   delExpense:async function(id){var r=await sb.from('expenses').delete().eq('id',id);if(r.error){toastErr(r.error);return;}toast('Dépense supprimée');await refresh();},
   sell:async function(){var items=[];Object.keys(S.cart).forEach(function(id){if(S.cart[id]>0)items.push({product_id:id,quantity:S.cart[id]});});if(!items.length){toast('Ajoutez un produit');return;}var r=await sb.rpc('record_sale',{p_items:items,p_pay:S.sel.pay||'espèces',p_customer:S.sel.cust||null});if(r.error){toastErr(r.error);return;}S.cart={};S.sel.cust='';toast('Vente enregistrée ✅');S.route='ventes';await refresh();},
-  createUser:async function(){var f=S.nu;var b=document.getElementById('btnCreate');if(!f.email||!f.pw){toast('Email et mot de passe requis');return;}b.textContent='Création…';b.disabled=true;
+  createUser:async function(){var f=S.nu;var b=document.getElementById('btnCreate');if(!f.email||!f.pw){toast('Email et mot de passe requis');return;}if(f.role==='commercial'&&!f.mgr){toast('Choisissez le responsable de ce commercial');return;}b.textContent='Création…';b.disabled=true;
     var r=await sb.rpc('admin_create_user',{p_email:f.email,p_password:f.pw,p_name:f.name||null,p_role:f.role||'commercial',p_mgr:f.mgr||null});
     if(r.error){toast('⚠ '+(r.error.message||r.error));b.textContent='Créer le compte';b.disabled=false;return;}
     toast('Compte créé ✅');S.nu={role:'commercial'};await refresh();},
