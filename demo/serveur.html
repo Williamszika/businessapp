@@ -442,7 +442,7 @@ function viewMembre(id){
   h+='<div class="card center"><div style="display:flex;justify-content:center;margin-bottom:6px">'+avatar(m.name,64)+'</div><div class="h2">'+esc(m.name)+'</div><span class="badge inf">'+poste(m)+'</span>'+(m.email?'<div class="cap mut">'+esc(m.email)+'</div>':'')+'</div>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('🛒','primary','Ventes',my.length)+stat('💰','success','Chiffre',compact(sumT(my)))+'</div>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','info','En stock',carriedOf(m.id)+' u.')+stat('💵','accent','Commission',compact(cr*sumT(my)))+'</div>';
-  if(canAssignTo(m.id))h+='<button class="full" onclick="ZK.assignTo(\''+m.id+'\')" style="margin-bottom:12px">📤 Lui attribuer du stock</button>';
+  if(eligibleHolders().some(function(a){return a.id===m.id;}))h+='<button class="full" onclick="ZK.assignTo(\''+m.id+'\')" style="margin-bottom:12px">📤 Lui attribuer du stock</button>';
   h+='<div class="h3" style="margin-bottom:8px">Son stock ('+carriedOf(m.id)+' u.)</div>';
   if(!hold.length)h+='<div class="card sm center">Ne détient aucun produit.</div>';
   else h+='<div class="card">'+hold.map(function(x){var low=x.qty<=3;return '<div class="lrow"><div class="grow"><div class="semi ell">'+esc(x.p.emoji||'📦')+' '+esc(x.p.name)+'</div><div class="cap">'+money(x.p.price)+'</div></div><div class="bold">'+x.qty+'</div><span class="badge '+(low?'warn':'ok')+'">'+(low?'faible':'ok')+'</span></div>';}).join('')+'</div>';
