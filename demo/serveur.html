@@ -169,6 +169,7 @@ function render(){
   var body;
   switch(S.route){
     case 'entrepot':body=viewEntrepot();break;
+    case 'produit':body=viewProduit(S.sel.pid);break;
     case 'produitNew':body=viewProduitNew();break;
     case 'reception':body=viewReception();break;
     case 'finances':body=viewFinances();break;
@@ -239,13 +240,40 @@ function viewEntrepot(){
   h+='<div class="row" style="gap:10px;margin-bottom:8px"><button class="grow" onclick="ZK.go(\'produitNew\')">➕ Nouveau produit</button><button class="sec grow" onclick="ZK.go(\'reception\')">📥 Réceptionner</button></div>';
   h+='<div class="cap" style="margin-bottom:10px">« − / + » corrige l\'inventaire (sans dépense). Pour un achat, utilisez « Réceptionner » (enregistre la dépense).</div>';
   if(!S.products.length)h+='<div class="card sm center">Aucun produit. Ajoutez-en un.</div>';
-  else h+='<div class="card">'+S.products.map(function(p){return '<div class="lrow"><div class="grow"><div class="semi ell">'+esc(p.emoji||'📦')+' '+esc(p.name)+'</div><div class="cap">'+esc(p.cat)+' • vente '+money(p.price)+' • coût '+money(p.cost)+'</div></div><div class="stepper"><button class="rbtn sec" onclick="ZK.adjust(\''+p.id+'\',-1)">−</button><div class="bold" style="min-width:46px;text-align:center">'+p.stock+'</div><button class="rbtn" onclick="ZK.adjust(\''+p.id+'\',1)">+</button></div></div>';}).join('')+'</div>';
+  else h+='<div class="card">'+S.products.map(function(p){return '<div class="lrow"><div class="grow" style="cursor:pointer" onclick="ZK.openProduct(\''+p.id+'\')"><div class="semi ell">'+esc(p.emoji||'📦')+' '+esc(p.name)+' ›</div><div class="cap">'+esc(p.cat)+' • vente '+money(p.price)+' • coût '+money(p.cost)+'</div></div><div class="stepper"><button class="rbtn sec" onclick="ZK.adjust(\''+p.id+'\',-1)">−</button><div class="bold" style="min-width:46px;text-align:center">'+p.stock+'</div><button class="rbtn" onclick="ZK.adjust(\''+p.id+'\',1)">+</button></div></div>';}).join('')+'</div>';
   return h;
 }
 function miniStat(l,v){return '<div class="grow center"><div class="h2">'+v+'</div><div class="cap">'+l+'</div></div>';}
 function warehouseValue(){return S.products.reduce(function(s,p){return s+(p.stock||0)*(p.cost||0);},0);}
 function backBtn(to){return '<button class="ghost" style="padding:8px 12px;margin-bottom:12px" onclick="ZK.go(\''+to+'\')">← Retour</button>';}
 var EMOJIS=['📦','🥤','💧','🍚','🛢️','🧼','☕','🥛','🔌','🎧','👕','🧢','🍪','🍯','🧂','🥫','🍅','🧴','💊','📱','👟','🔋'];
+
+/* ---------- Fiche produit (détails) ---------- */
+function viewProduit(pid){
+  var p=prodById(pid);
+  var isBoss=role()==='boss';
+  if(!p)return backBtn(isBoss?'entrepot':'stock')+'<div class="card sm center">Produit introuvable.</div>';
+  var mine=heldQty(S.me.id,pid),field=fieldTotalOf(pid),st=productStat(pid),mar=(p.price||0)-(p.cost||0),mpct=p.price?Math.round(mar/p.price*100):0;
+  var h=backBtn(isBoss?'entrepot':'stock');
+  h+='<div class="card center"><div style="font-size:46px;line-height:1">'+esc(p.emoji||'📦')+'</div><div class="h2 mut">'+esc(p.name)+'</div><div class="sm">'+esc(p.cat)+(p.sku?' • '+esc(p.sku):'')+'</div></div>';
+  h+='<div class="card"><div class="lrow between"><div class="sm">Prix de vente</div><div class="h3">'+money(p.price)+'</div></div>';
+  if(isBoss)h+='<div class="lrow between"><div class="sm">Coût d\'achat</div><div class="semi">'+money(p.cost)+'</div></div><div class="lrow between"><div class="sm">Marge unitaire</div><div class="semi" style="color:var(--success)">'+money(mar)+' ('+mpct+'%)</div></div>';
+  h+='<div class="lrow between"><div class="sm">Unité</div><div class="semi">'+esc(p.unit||'pièce')+'</div></div><div class="lrow between"><div class="sm">Seuil d\'alerte</div><div class="semi">'+(p.reorder||0)+'</div></div></div>';
+  if(isBoss){
+    h+='<div class="card"><div class="row between"><div><div class="h1">'+p.stock+'</div><div class="cap">en entrepôt</div></div><div style="text-align:right"><div class="h3">'+field+'</div><div class="cap">sur le terrain</div></div><div style="text-align:right"><div class="h3">'+compact((p.stock||0)*(p.cost||0))+'</div><div class="cap">valeur (coût)</div></div></div>';
+    h+='<div class="row" style="gap:10px;margin-top:12px;align-items:center"><div class="cap grow">Corriger l\'inventaire</div><div class="stepper"><button class="rbtn sec" onclick="ZK.adjust(\''+pid+'\',-1)">−</button><div class="bold" style="min-width:46px;text-align:center">'+p.stock+'</div><button class="rbtn" onclick="ZK.adjust(\''+pid+'\',1)">+</button></div></div>';
+    h+='<button class="sec full mut" onclick="ZK.receiveFor(\''+pid+'\')">📥 Réceptionner (achat)</button></div>';
+    var holders=responsables().concat(commerciaux()).filter(function(a){return heldQty(a.id,pid)>0;}).sort(function(a,b){return heldQty(b.id,pid)-heldQty(a.id,pid);});
+    h+='<div class="card"><div class="h3" style="margin-bottom:6px">Détenu par</div>'+(holders.length?holders.map(function(a){return '<div class="lrow"><div class="grow"><div class="semi ell">'+esc(a.name)+'</div><div class="cap">'+roleLabel(a.role)+'</div></div><div class="bold">'+heldQty(a.id,pid)+'</div></div>';}).join(''):'<div class="sm">Personne ne détient ce produit pour l\'instant.</div>')+'</div>';
+    h+='<div class="card"><div class="h3" style="margin-bottom:8px">Ventes de ce produit</div><div class="row">'+miniStat('Vendus',st.qty)+miniStat('Revenu',compact(st.rev))+miniStat('Marge',compact(st.margin))+'</div></div>';
+    var mv=S.movements.filter(function(m){return m.product_id===pid;}).slice(0,8);
+    if(mv.length)h+='<div class="card"><div class="h3" style="margin-bottom:6px">Mouvements récents</div>'+mv.map(function(m){var a=profById(m.holder_id),inn=m.qty>0,d=new Date(m.at);return '<div class="lrow"><div class="ico" style="background:'+(inn?'var(--successS)':'var(--warnS)')+'">'+(inn?'⬇️':'⬆️')+'</div><div class="grow"><div class="sm semi">'+(inn?'+':'')+m.qty+' '+(inn?'→ ':'← ')+esc(a?firstName(a.name):'?')+'</div><div class="cap">'+d.toLocaleDateString('fr-FR')+'</div></div></div>';}).join('')+'</div>';
+  } else {
+    h+='<div class="card"><div class="row between"><div><div class="h1">'+mine+'</div><div class="cap">j\'en détiens</div></div><div style="text-align:right"><div class="h3">'+field+'</div><div class="cap">sur le terrain (tous)</div></div></div></div>';
+    if(role()==='commercial'&&mine>0)h+='<button class="full" onclick="ZK.go(\'vendre\')">🛒 Vendre ce produit</button>';
+  }
+  return h;
+}
 
 /* ---------- Formulaire : nouveau produit ---------- */
 function viewProduitNew(){
@@ -281,7 +309,7 @@ function viewMonStock(){
   var h='<div class="h1" style="margin-bottom:12px">'+(role()==='responsable'?'Ma réserve':'Mon stock')+'</div>';
   h+='<div class="card row">'+miniStat('Unités',carriedOf(S.me.id))+miniStat('Références',mine.length)+miniStat('Valeur',compact(mine.reduce(function(s,x){return s+x.qty*x.p.price;},0)))+'</div>';
   if(!mine.length)h+='<div class="card sm center">Aucun stock ne vous a été attribué.</div>';
-  else h+='<div class="card">'+mine.map(function(x){var low=x.qty<=3;return '<div class="lrow">'+avatar(x.p.name,40)+'<div class="grow"><div class="semi ell">'+esc(x.p.name)+'</div><div class="cap">'+esc(x.p.cat)+' • '+money(x.p.price)+'</div></div><div class="bold">'+x.qty+'</div><span class="badge '+(low?'warn':'ok')+'">'+(low?'faible':'ok')+'</span></div>';}).join('')+'</div>';
+  else h+='<div class="card">'+mine.map(function(x){var low=x.qty<=3;return '<div class="lrow" style="cursor:pointer" onclick="ZK.openProduct(\''+x.p.id+'\')">'+avatar(x.p.name,40)+'<div class="grow"><div class="semi ell">'+esc(x.p.name)+' ›</div><div class="cap">'+esc(x.p.cat)+' • '+money(x.p.price)+'</div></div><div class="bold">'+x.qty+'</div><span class="badge '+(low?'warn':'ok')+'">'+(low?'faible':'ok')+'</span></div>';}).join('')+'</div>';
   return h;
 }
 
@@ -365,6 +393,7 @@ function netProfit(){return totalRevenue()-totalExpenses();}
 function grossMargin(){var m=0;S.sales.forEach(function(s){(s.sale_items||[]).forEach(function(it){var p=prodById(it.product_id);var c=p?(p.cost||0):0;m+=((it.unit_price||0)-c)*it.quantity;});});return m;}
 function productStats(){var map={};S.sales.forEach(function(s){(s.sale_items||[]).forEach(function(it){var m=map[it.product_id]||(map[it.product_id]={qty:0,rev:0});m.qty+=it.quantity;m.rev+=it.quantity*(it.unit_price||0);});});
   return S.products.map(function(p){var m=map[p.id]||{qty:0,rev:0};return {p:p,qty:m.qty,rev:m.rev,margin:m.rev-m.qty*(p.cost||0)};}).sort(function(a,b){return b.rev-a.rev;});}
+function productStat(pid){var qty=0,rev=0;S.sales.forEach(function(s){(s.sale_items||[]).forEach(function(it){if(it.product_id===pid){qty+=it.quantity;rev+=it.quantity*(it.unit_price||0);}});});var p=prodById(pid);return {qty:qty,rev:rev,margin:rev-qty*((p&&p.cost)||0)};}
 var EXPCATS=['Achat stock','Loyer','Salaire','Transport','Autre'];
 
 function viewFinances(){
@@ -408,6 +437,8 @@ function finProduits(){
 /* ---------- Actions ---------- */
 window.ZK={
   go:function(r){S.route=r;render();window.scrollTo(0,0);},
+  openProduct:function(id){S.sel.pid=id;S.route='produit';render();window.scrollTo(0,0);},
+  receiveFor:function(id){S.rec={pid:id};S.route='reception';render();window.scrollTo(0,0);},
   logout:logout,
   selHolder:function(id){S.sel.holder=id;render();},
   setPay:function(m){S.sel.pay=m;render();},
