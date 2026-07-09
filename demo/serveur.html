@@ -204,6 +204,7 @@ function dashBoss(){
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','primary','Produits',S.products.length)+stat('🗺️','info','Stock terrain',fieldTotal()+' u.')+'</div>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('💰','success','Chiffre 30j',compact(sumT(inLast(all,30))))+stat('👥','accent','Équipe',responsables().length+commerciaux().length)+'</div>';
   h+='<div class="card row" onclick="ZK.go(\'finances\')">'+miniStat('Revenus',compact(totalRevenue()))+miniStat('Dépenses',compact(totalExpenses()))+miniStat('Bénéfice',compact(netProfit()))+'</div>';
+  h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">🏛️</div><div><div class="semi">Ma part du bénéfice</div><div class="cap">'+(S.me.own||0)+' % de participation</div></div></div><div class="h2" style="color:var(--success)">'+money(shareAmount(S.me.own))+'</div></div>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px"><button class="grow" onclick="ZK.go(\'attribuer\')">📤 Attribuer</button><button class="sec grow" onclick="ZK.go(\'terrain\')">🗺️ Terrain</button></div>';
   h+=chartCard(all);
   var rs=responsables();
@@ -352,7 +353,7 @@ function viewEquipe(){
   var bs=bosses(),totalShare=bs.reduce(function(s,b){return s+(b.own||0);},0);
   h+='<div class="h3" style="margin-bottom:8px">🏛️ Bureau de direction — '+bs.length+'/5 fauteuils</div>';
   h+='<div class="card">'+bs.map(function(b){var me=b.id===S.me.id;
-    return '<div class="lrow wrap">'+avatar(b.name,40)+'<div class="grow"><div class="semi ell">'+esc(b.name)+(me?' <span class="cap">(vous)</span>':'')+'</div><div class="cap">'+poste(b)+(b.email?' • '+esc(b.email):'')+'</div></div>'
+    return '<div class="lrow wrap">'+avatar(b.name,40)+'<div class="grow"><div class="semi ell">'+esc(b.name)+(me?' <span class="cap">(vous)</span>':'')+'</div><div class="cap">'+poste(b)+' • part '+money(shareAmount(b.own))+'</div></div>'
       +(pres?('<div class="row" style="gap:6px"><input type="number" value="'+(b.own||0)+'" onchange="ZK.setShare(\''+b.id+'\',this.value)" style="width:58px;padding:8px" title="Part de participation %"><span class="cap">%</span>'+(!me?'<button class="rbtn" style="background:var(--dangerS);color:var(--danger)" onclick="ZK.deleteUser(\''+b.id+'\',\''+esc((b.name||'').replace(/\x27/g,''))+'\')">🗑️</button>':'')+'</div>')
         :'<span class="badge acc">'+(b.own||0)+' %</span>')+'</div>';
   }).join('')+'<div class="lrow between"><div class="cap">Total des parts</div><div class="semi">'+totalShare+' %</div></div></div>';
@@ -423,6 +424,7 @@ function viewVentes(){
 function totalRevenue(){return sumT(S.sales);}
 function totalExpenses(){return S.expenses.reduce(function(s,e){return s+(e.amount||0);},0);}
 function netProfit(){return totalRevenue()-totalExpenses();}
+function shareAmount(own){return Math.round((own||0)/100*netProfit());}
 function grossMargin(){var m=0;S.sales.forEach(function(s){(s.sale_items||[]).forEach(function(it){var p=prodById(it.product_id);var c=p?(p.cost||0):0;m+=((it.unit_price||0)-c)*it.quantity;});});return m;}
 function productStats(){var map={};S.sales.forEach(function(s){(s.sale_items||[]).forEach(function(it){var m=map[it.product_id]||(map[it.product_id]={qty:0,rev:0});m.qty+=it.quantity;m.rev+=it.quantity*(it.unit_price||0);});});
   return S.products.map(function(p){var m=map[p.id]||{qty:0,rev:0};return {p:p,qty:m.qty,rev:m.rev,margin:m.rev-m.qty*(p.cost||0)};}).sort(function(a,b){return b.rev-a.rev;});}
