@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09g (part jamais négative) -->
+<!-- ZKA build: 2026-07-09h (gestes glisser gauche/droite) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -154,6 +154,7 @@ async function afterLogin(){
   if(pr.error){ renderFatal(pr.error.message); return; }
   S.me=pr.data||{id:u.id,name:u.email,role:'—'};
   await loadAll(); subscribe(); S.route='accueil'; render();
+  try{if(!localStorage.getItem('zk_swipe')){localStorage.setItem('zk_swipe','1');setTimeout(function(){toast('Astuce : glissez ◀ ▶ pour changer d\'onglet');},1000);}}catch(e){}
 }
 async function doLogin(){
   var email=(document.getElementById('email').value||'').trim();var pw=document.getElementById('pw').value||'';
@@ -678,6 +679,32 @@ window.ZK={
   saveProfil:async function(){var f=S.prof||{};var res=await sb.rpc('update_my_profile',{p_name:(f.name!=null?f.name:S.me.name),p_emoji:null,p_phone:(f.phone!=null?f.phone:(S.me.phone||''))});if(res.error){toastErr(res.error);return;}S.prof={};var u=(await sb.auth.getUser()).data.user;var pr=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();if(pr.data)S.me=pr.data;toast('Profil enregistré ✅');await refresh();},
   changePassword:async function(){var f=S.prof||{};if(!f.pw||f.pw.length<6){toast('Mot de passe : au moins 6 caractères');return;}var res=await sb.auth.updateUser({password:f.pw});if(res.error){toastErr(res.error);return;}f.pw='';toast('Mot de passe mis à jour ✅');render();}
 };
+
+/* ---------- Gestes : glisser à gauche / à droite ---------- */
+function swipeBackTarget(){
+  var b={produit:role()==='boss'?'entrepot':'stock',produitNew:'entrepot',reception:'entrepot',terrain:'accueil',profil:'accueil',recu:role()==='commercial'?'ventes':'accueil',membre:'equipe',bulletin:(S.sel.bid===(S.me&&S.me.id)?'profil':(role()==='commercial'?'accueil':'membre'))};
+  return b[S.route]||null;
+}
+function onSwipe(dir){
+  if(!S.me)return;
+  var tabs=tabsFor().map(function(t){return t[0];}),idx=tabs.indexOf(S.route);
+  if(idx>=0){var ni=dir==='left'?idx+1:idx-1;if(ni<0||ni>=tabs.length)return;S.route=tabs[ni];render();window.scrollTo(0,0);}
+  else if(dir==='right'){var to=swipeBackTarget();if(to){S.route=to;render();window.scrollTo(0,0);}}
+}
+(function(){
+  var x0=null,y0=null,t0=0,ig=false;
+  app.addEventListener('touchstart',function(e){
+    if(!e.touches||e.touches.length!==1){x0=null;return;}
+    var t=e.touches[0];x0=t.clientX;y0=t.clientY;t0=Date.now();
+    ig=!!(e.target&&e.target.closest&&e.target.closest('.chips,input,select,textarea,.stepper'));
+  },{passive:true});
+  app.addEventListener('touchend',function(e){
+    if(x0==null||ig){x0=null;return;}
+    var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0,dt=Date.now()-t0;x0=null;
+    if(dt>600||Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.8)return;
+    onSwipe(dx<0?'left':'right');
+  },{passive:true});
+})();
 
 /* ---------- Démarrage ---------- */
 if(!cfg.url||!cfg.anonKey){ app.innerHTML='<div class="content"><div class="card"><b>Serveur non configuré.</b><div class="sm mut">Renseignez vos clés Supabase dans <code>demo/config.js</code>.</div></div></div>'; }
