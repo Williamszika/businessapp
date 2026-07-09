@@ -169,7 +169,7 @@ end;
 $$;
 
 -- Enregistrer une vente : décrémente le stock RÉELLEMENT détenu par le
--- commercial connecté (on ne vend que ce qu'on possède).
+-- vendeur connecté (commercial OU responsable) — on ne vend que ce qu'on possède.
 -- p_items : JSON [{ "product_id": "...", "quantity": n }, ...]
 create or replace function public.record_sale(p_items jsonb, p_pay text, p_customer text)
 returns uuid
@@ -191,7 +191,7 @@ declare
 begin
   if v_caller is null then raise exception 'Non authentifié'; end if;
   select role into v_role from profiles where id = v_caller;
-  if v_role <> 'commercial' then raise exception 'Seuls les commerciaux vendent'; end if;
+  if v_role not in ('commercial','responsable') then raise exception 'Seuls les commerciaux et responsables vendent'; end if;
 
   -- Vérifier la disponibilité détenue
   for it in select * from jsonb_array_elements(p_items) loop

@@ -63,17 +63,59 @@ begin
 end; $$;
 grant execute on function public.request_payout(text, numeric) to authenticated;
 
--- Le président paie un membre ; une commission remet le compteur à zéro
+-- Le président paie un membre.
+--  • Commission : le MONTANT est recalculé côté serveur (autoritaire) = taux perso ×
+--    ventes depuis le dernier versement, jusqu'à l'instant du paiement, + 2 % sur les
+--    ventes de l'équipe pour un responsable. Le compteur est réinitialisé au MÊME instant,
+--    donc aucune vente n'est perdue (on ne fait plus confiance au montant du navigateur).
+--  • Le versement est enregistré comme DÉPENSE (impacte le bénéfice net et les parts).
 create or replace function public.pay_member(p_member uuid, p_kind text, p_amount numeric, p_note text)
 returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_cut    timestamptz := now();   -- instant du paiement = borne haute ET nouveau point de départ
+  v_amount numeric := 0;
+  v_role   text;
+  v_comm   numeric;
+  v_since  timestamptz;
+  v_name   text;
 begin
   if not public.is_president() then raise exception 'Réservé au président'; end if;
   if p_kind not in ('commission','salaire') then raise exception 'Type invalide'; end if;
-  insert into public.payouts(member_id, kind, amount, note, paid_by)
-    values (p_member, p_kind, greatest(0, coalesce(p_amount, 0)), p_note, auth.uid());
+
+  select role, coalesce(comm, 0), coalesce(comm_paid_at, created_at, to_timestamp(0)), name
+    into v_role, v_comm, v_since, v_name
+    from public.profiles where id = p_member;
+  if v_name is null then raise exception 'Membre introuvable'; end if;
+
   if p_kind = 'commission' then
-    update public.profiles set comm_paid_at = now() where id = p_member;  -- réinitialise la commission
+    -- Commission personnelle
+    select coalesce(v_comm * sum(total), 0) into v_amount
+      from public.sales
+     where seller_id = p_member and created_at > v_since and created_at <= v_cut;
+    -- Override d'équipe (2 %) pour un responsable
+    if v_role = 'responsable' then
+      v_amount := v_amount + coalesce((
+        select 0.02 * sum(s.total)
+          from public.sales s join public.profiles p on p.id = s.seller_id
+         where p.mgr = p_member and s.created_at > v_since and s.created_at <= v_cut
+      ), 0);
+    end if;
+    v_amount := round(v_amount);
+    update public.profiles set comm_paid_at = v_cut where id = p_member;  -- réinitialise le compteur
+  else
+    v_amount := greatest(0, coalesce(p_amount, 0));
   end if;
+
+  insert into public.payouts(member_id, kind, amount, note, paid_by)
+    values (p_member, p_kind, v_amount, p_note, auth.uid());
+
+  -- Un versement est une dépense de l'entreprise
+  insert into public.expenses(label, amount, category, by_id)
+    values ((case when p_kind = 'commission' then 'Commission — ' else 'Salaire — ' end) || v_name,
+            v_amount,
+            (case when p_kind = 'commission' then 'Commission' else 'Salaire' end),
+            auth.uid());
+
   update public.payout_requests set status = 'payé', resolved_at = now()
     where member_id = p_member and kind = p_kind and status = 'en_attente';
 end; $$;
