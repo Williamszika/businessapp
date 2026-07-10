@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-10a (notifications globales : stock, demandes, ventes crédit, versements, alertes + centre 🔔) -->
+<!-- ZKA build: 2026-07-10b (finances : historique mois par mois depuis le début — chiffre, stock libéré, dépenses, bénéfice) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -80,7 +80,7 @@
 "use strict";
 var app=document.getElementById('app'),toastEl=document.getElementById('toast');
 var cfg=window.ZKA_SUPABASE||{}, sb=null;
-var S={me:null,products:[],holdings:[],profiles:[],movements:[],sales:[],expenses:[],payouts:[],payout_requests:[],stock_requests:[],messages:[],notifications:[],route:'accueil',sel:{},cart:{},nu:{role:'commercial'},pf:{emoji:'📦'},rec:{},exp:{category:'Achat stock'},req:{},finTab:'benef',chatTab:'public'};
+var S={me:null,products:[],holdings:[],profiles:[],movements:[],sales:[],expenses:[],payouts:[],payout_requests:[],stock_requests:[],messages:[],notifications:[],monthly:[],route:'accueil',sel:{},cart:{},nu:{role:'commercial'},pf:{emoji:'📦'},rec:{},exp:{category:'Achat stock'},req:{},finTab:'benef',chatTab:'public'};
 var DAY=86400000,MO=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 var TEAM_OVERRIDE=0.02; // commission d'équipe du responsable (% des ventes de ses commerciaux)
 
@@ -146,10 +146,10 @@ async function loadAll(){
     sb.from('products').select('*').order('name'),
     sb.from('profiles').select('*'),
     sb.from('holdings').select('*'),
-    sb.from('movements').select('*').order('at',{ascending:false}).limit(40),
-    sb.from('sales').select('*, sale_items(*)').order('created_at',{ascending:false}).limit(80),
-    sb.from('expenses').select('*').order('at',{ascending:false}).limit(200),
-    sb.from('payouts').select('*').order('paid_at',{ascending:false}).limit(200),
+    sb.from('movements').select('*').order('at',{ascending:false}).limit(300),
+    sb.from('sales').select('*, sale_items(*)').order('created_at',{ascending:false}).limit(400),
+    sb.from('expenses').select('*').order('at',{ascending:false}).limit(400),
+    sb.from('payouts').select('*').order('paid_at',{ascending:false}).limit(400),
     sb.from('payout_requests').select('*').order('requested_at',{ascending:false}).limit(200),
     sb.from('stock_requests').select('*').order('requested_at',{ascending:false}).limit(200),
     sb.from('messages').select('*').order('created_at',{ascending:false}).limit(400),
@@ -157,6 +157,8 @@ async function loadAll(){
   ]);
   for(var i=0;i<r.length;i++)if(r[i].error&&i<5)toastErr(r[i].error);
   S.products=r[0].data||[]; S.profiles=r[1].data||[]; S.holdings=r[2].data||[]; S.movements=r[3].data||[]; S.sales=r[4].data||[]; S.expenses=r[5].data||[]; S.payouts=r[6].data||[]; S.payout_requests=r[7].data||[]; S.stock_requests=r[8].data||[]; S.messages=r[9].data||[]; S.notifications=(r[10]&&r[10].data)||[];
+  // Rapport mensuel agrégé (tout l'historique, direction uniquement)
+  if(role()==='boss'){ try{ var mr=await sb.rpc('monthly_summary'); S.monthly=(mr&&!mr.error&&mr.data)||[]; }catch(e){ S.monthly=[]; } } else { S.monthly=[]; }
 }
 var _rt=null;
 function subscribe(){ if(_rt)return; _rt=sb.channel('zka').on('postgres_changes',{event:'*',schema:'public'},function(){clearTimeout(subscribe._t);subscribe._t=setTimeout(refresh,350);}).subscribe(); }
@@ -245,6 +247,7 @@ function render(){
     case 'chat':body=viewChat();break;
     case 'dm':body=viewDM(S.sel.peer);break;
     case 'notifs':body=viewNotifications();break;
+    case 'finmois':body=viewFinMonth(S.sel.fmonth);break;
     default:body=viewAccueil();
   }
   var tabs=tabsFor();
@@ -803,8 +806,19 @@ function viewDM(peer){
 }
 
 /* ---------- Finances ---------- */
-function totalRevenue(){return sumT(S.sales);}
-function totalExpenses(){return S.expenses.reduce(function(s,e){return s+(e.amount||0);},0);}
+// Rapport mensuel : agrégat serveur (tout l'historique) si dispo, sinon calcul local.
+function monthlyRows(){
+  if(S.monthly&&S.monthly.length)return S.monthly.map(function(r){var rev=+r.revenue||0,exp=+r.expenses||0;return {period:r.period,revenue:rev,units_sold:+r.units_sold||0,stock_released:+r.stock_released||0,expenses:exp,sales_count:+r.sales_count||0,profit:rev-exp};});
+  var map={};function m(k){return map[k]||(map[k]={period:k,revenue:0,units_sold:0,stock_released:0,expenses:0,sales_count:0});}
+  S.sales.forEach(function(s){var o=m(saleMonth(s));o.revenue+=s.total||0;o.sales_count++;(s.sale_items||[]).forEach(function(it){o.units_sold+=it.quantity||0;});});
+  S.expenses.forEach(function(e){var o=m(monthKey(new Date(e.at)));o.expenses+=e.amount||0;});
+  S.movements.forEach(function(mv){if((mv.qty||0)>0){var by=profById(mv.by_id);if(by&&by.role==='boss'){m(monthKey(new Date(mv.at))).stock_released+=mv.qty;}}});
+  return Object.keys(map).map(function(k){var o=map[k];o.profit=o.revenue-o.expenses;return o;}).sort(function(a,b){return a.period<b.period?1:-1;});
+}
+function monthRow(mk){var r=monthlyRows();for(var i=0;i<r.length;i++)if(r[i].period===mk)return r[i];return {period:mk,revenue:0,units_sold:0,stock_released:0,expenses:0,sales_count:0,profit:0};}
+function grandTotals(){var r=monthlyRows(),t={revenue:0,expenses:0,units_sold:0,stock_released:0,sales_count:0};r.forEach(function(o){t.revenue+=o.revenue;t.expenses+=o.expenses;t.units_sold+=o.units_sold;t.stock_released+=o.stock_released;t.sales_count+=o.sales_count;});t.profit=t.revenue-t.expenses;return t;}
+function totalRevenue(){if(S.monthly&&S.monthly.length)return S.monthly.reduce(function(s,r){return s+(+r.revenue||0);},0);return sumT(S.sales);}
+function totalExpenses(){if(S.monthly&&S.monthly.length)return S.monthly.reduce(function(s,r){return s+(+r.expenses||0);},0);return S.expenses.reduce(function(s,e){return s+(e.amount||0);},0);}
 function netProfit(){return totalRevenue()-totalExpenses();}
 function shareAmount(own){return Math.max(0,Math.round((own||0)/100*netProfit()));}
 function fmtDate(iso){if(!iso)return '—';var d=new Date(iso);return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});}
@@ -879,18 +893,34 @@ function finBenef(){
   var h='<div class="hero"><div class="sm" style="color:#fff;opacity:.9">Bénéfice net (revenus − dépenses)</div><div style="font-size:32px;font-weight:800;letter-spacing:-1px">'+money(np)+'</div><div class="sm" style="color:#fff;opacity:.9;margin-top:4px">'+(np>=0?'✅ positif':'⚠ négatif')+'</div></div>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('💰','success','Revenus (ventes)',compact(totalRevenue()))+stat('💸','accent','Dépenses',compact(totalExpenses()))+'</div>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📈','primary','Marge brute',compact(grossMargin()))+stat('🧾','info','Nb ventes',S.sales.length)+'</div>';
-  var fmk=S.finMonth||(S.finMonth=curMonth());
-  var mSales=S.sales.filter(function(s){return saleMonth(s)===fmk;}),mRev=sumT(mSales);
-  var mExp=S.expenses.filter(function(e){return monthKey(new Date(e.at))===fmk;}).reduce(function(s,e){return s+(e.amount||0);},0);
-  var fmembers=responsables().concat(commerciaux());
-  var mComm=fmembers.reduce(function(s,mm){return s+earnedComm(mm,fmk);},0),mSal=fmembers.reduce(function(s,mm){return s+(mm.salary||0);},0);
-  h+='<div class="h3" style="margin:4px 0 8px">📅 Par mois</div>'+monthNav(fmk,'setFinMonth');
-  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('💰','success','Revenus',compact(mRev))+stat('💸','accent','Dépenses',compact(mExp))+stat('📊','primary','Bénéfice',compact(mRev-mExp))+'</div>';
-  h+='<div class="card"><div class="lrow between"><div class="sm">Ventes du mois</div><div class="semi">'+mSales.length+'</div></div><div class="lrow between"><div class="sm">Commissions gagnées (mois)</div><div class="semi">'+money(mComm)+'</div></div><div class="lrow between"><div class="sm">Salaires du mois</div><div class="semi">'+money(mSal)+'</div></div></div>';
+  h+='<div class="h3" style="margin:6px 0 8px">📅 Historique mois par mois</div>';
+  var rows=monthlyRows();
+  if(!rows.length)h+='<div class="card sm center">Aucune activité pour l\'instant. Le premier stock et les premières ventes ouvriront l\'historique.</div>';
+  else{
+    h+='<div class="card">'+rows.map(function(o){var pos=o.profit>=0;return '<div class="lrow" style="cursor:pointer" onclick="ZK.openFinMonth(\''+o.period+'\')"><div class="grow" style="min-width:0"><div class="semi ell" style="text-transform:capitalize">'+monthLabel(o.period)+' ›</div><div class="cap ell">📦 '+o.stock_released+' u. libérées • 🧾 '+o.sales_count+' vente(s)</div></div><div style="text-align:right"><div class="semi" style="color:var(--success)">'+compact(o.revenue)+'</div><div class="cap" style="color:'+(pos?'var(--success)':'var(--danger)')+'">bén. '+compact(o.profit)+'</div></div></div>';}).join('')+'</div>';
+    h+='<div class="cap mut" style="margin:4px 2px 12px">Touchez un mois pour le détail : stock libéré, chiffre, dépenses, salaires et commissions du mois.</div>';
+  }
   var owed=sumT(S.sales.filter(isUnpaidCredit));
   if(owed>0)h+='<div class="card row between" style="cursor:pointer" onclick="ZK.go(\'creances\')"><div class="row" style="gap:10px"><div class="ico" style="background:var(--warnS)">🤝</div><div><div class="semi">Créances clients</div><div class="cap">crédits non encaissés ›</div></div></div><div class="h2" style="color:var(--warn)">'+money(owed)+'</div></div>';
   h+='<div class="cap" style="margin-bottom:6px">La <b>marge brute</b> = ventes − coût des produits vendus. Le <b>bénéfice net</b> = revenus − toutes les dépenses saisies.</div>';
   h+=chartCard(S.sales);
+  return h;
+}
+function viewFinMonth(mk){
+  if(!mk)return backBtn('finances')+'<div class="card sm center">Mois introuvable.</div>';
+  var o=monthRow(mk),h=backBtn('finances');
+  h+='<div class="hero"><div class="sm" style="color:#fff;opacity:.9;text-transform:capitalize">'+monthLabel(mk)+'</div><div style="font-size:28px;font-weight:800;letter-spacing:-1px">'+money(o.revenue)+'</div><div class="sm" style="color:#fff;opacity:.9;margin-top:2px">chiffre d\'affaires du mois</div></div>';
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','info','Stock libéré',o.stock_released+' u.')+stat('🧾','primary','Ventes',o.sales_count)+'</div>';
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('💸','accent','Dépenses',compact(o.expenses))+stat('📊',(o.profit>=0?'success':'accent'),'Bénéfice',compact(o.profit))+'</div>';
+  var fmembers=responsables().concat(commerciaux());
+  var mComm=fmembers.reduce(function(s,mm){return s+earnedComm(mm,mk);},0),mSal=fmembers.reduce(function(s,mm){return s+(mm.salary||0);},0);
+  h+='<div class="card"><div class="lrow between"><div class="sm">Unités vendues</div><div class="semi">'+o.units_sold+'</div></div><div class="lrow between"><div class="sm">Commissions gagnées (mois)</div><div class="semi">'+money(mComm)+'</div></div><div class="lrow between"><div class="sm">Salaires (mois)</div><div class="semi">'+money(mSal)+'</div></div><div class="lrow between"><div class="sm">Bénéfice du mois</div><div class="semi" style="color:'+(o.profit>=0?'var(--success)':'var(--danger)')+'">'+money(o.profit)+'</div></div></div>';
+  var mExp=S.expenses.filter(function(e){return monthKey(new Date(e.at))===mk;});
+  if(mExp.length){h+='<div class="h3" style="margin:14px 0 8px">Dépenses de '+monthLabel(mk)+'</div><div class="card">'+mExp.map(function(e){return '<div class="lrow"><div class="ico" style="background:var(--warnS)">💸</div><div class="grow"><div class="semi ell">'+esc(e.label)+'</div><div class="cap">'+esc(e.category)+' • '+fmtDate(e.at)+'</div></div><div class="semi">'+money(e.amount)+'</div></div>';}).join('')+'</div>';}
+  var mSales=S.sales.filter(function(s){return saleMonth(s)===mk;});
+  h+='<div class="h3" style="margin:14px 0 8px">Ventes de '+monthLabel(mk)+' ('+o.sales_count+')</div>';
+  if(!mSales.length)h+='<div class="card sm center">Détails non chargés pour ce mois (le total ci-dessus reste exact).</div>';
+  else h+='<div class="card">'+mSales.slice(0,50).map(function(s){var seller=profById(s.seller_id);return '<div class="lrow" style="cursor:pointer" onclick="ZK.openRecu(\''+s.id+'\')"><div class="ico" style="background:var(--successS)">🧾</div><div class="grow"><div class="semi ell">'+esc(s.customer||'Client comptant')+' ›</div><div class="cap">'+(seller?esc(firstName(seller.name))+' • ':'')+fmtDate(s.created_at)+'</div></div><div class="semi" style="color:var(--success)">'+money(s.total)+'</div></div>';}).join('')+'</div>';
   return h;
 }
 function finDepenses(){
@@ -963,6 +993,7 @@ window.ZK={
   openRecu:function(id){S.sel.saleId=id;S.route='recu';render();window.scrollTo(0,0);},
   openMembre:function(id){S.sel.mid=id;S.route='membre';render();window.scrollTo(0,0);},
   openBulletin:function(id){S.sel.bid=id;S.route='bulletin';render();window.scrollTo(0,0);},
+  openFinMonth:function(mk){S.sel.fmonth=mk;S.route='finmois';render();window.scrollTo(0,0);},
   enablePush:async function(){try{if(!pushSupported()){toast('Notifications non supportées sur cet appareil/navigateur');return;}var vk=(window.ZKA_SUPABASE||{}).vapidPublic;if(!vk){toast('Clé push non configurée');return;}var perm=await Notification.requestPermission();if(perm!=='granted'){toast('Notifications refusées dans les réglages');return;}var reg=await navigator.serviceWorker.ready;var sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8(vk)});var j=sub.toJSON();var r=await sb.from('push_subscriptions').upsert({endpoint:j.endpoint,user_id:S.me.id,p256dh:j.keys.p256dh,auth:j.keys.auth});if(r.error){toastErr(r.error);return;}try{localStorage.setItem('zk_push','1');}catch(e){}toast('Notifications activées ✅');render();}catch(e){toast('Activation impossible : '+((e&&e.message)||e));}},
   chatTab:function(t){S.chatTab=t;S.replyTo=null;render();},
   openDM:function(id){S.sel.peer=id;S.replyTo=null;S.route='dm';render();},
@@ -992,7 +1023,6 @@ window.ZK={
   payMonth:async function(id,kind){var m=profById(id),mk=S.payMonth||curMonth();var amt=kind==='commission'?dueComm(m,mk):dueSalary(m,mk);if(amt<=0){toast('Rien à verser ce mois');return;}if(!window.confirm('Verser '+(kind==='commission'?'la commission':'le salaire')+' de '+((m&&m.name)||'')+' pour '+monthLabel(mk)+' : '+money(amt)+' ?'))return;var res=await sb.rpc('pay_member_month',{p_member:id,p_kind:kind,p_period:mk});if(res.error){toastErr(res.error);return;}toast('Versement enregistré ✅');await refresh();},
   setPayMonth:function(mk){S.payMonth=mk;render();},
   setBulMonth:function(mk){S.bulMonth=mk;render();window.scrollTo(0,0);},
-  setFinMonth:function(mk){S.finMonth=mk;render();},
   deleteUser:async function(id,name){var m=profById(id);if(m&&m.role==='responsable'){var n=commerciauxOf(id).length;if(n){toast('Réattribuez d\'abord ses '+n+' commercial(aux) avant de supprimer ce responsable');return;}}if(!window.confirm('Supprimer définitivement le compte de '+name+' ?'))return;var r=await sb.rpc('admin_delete_user',{p_target:id});if(r.error){toast('⚠ '+(r.error.message||r.error));return;}toast('Compte supprimé');S.route='equipe';await refresh();},
   prof:function(k,v){(S.prof||(S.prof={}))[k]=v;},
   saveProfil:async function(){var f=S.prof||{};var res=await sb.rpc('update_my_profile',{p_name:(f.name!=null?f.name:S.me.name),p_emoji:null,p_phone:(f.phone!=null?f.phone:(S.me.phone||''))});if(res.error){toastErr(res.error);return;}S.prof={};var u=(await sb.auth.getUser()).data.user;var pr=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();if(pr.data)S.me=pr.data;toast('Profil enregistré ✅');await refresh();},
