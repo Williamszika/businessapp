@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09n (vente & inventaire : saisie + confirmation) -->
+<!-- ZKA build: 2026-07-09o (commission par produit + fiche produit saisie/✓) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -317,15 +317,16 @@ function viewProduit(pid){
   var p=prodById(pid);
   var isBoss=role()==='boss';
   if(!p)return backBtn(isBoss?'entrepot':'stock')+'<div class="card sm center">Produit introuvable.</div>';
-  var mine=heldQty(S.me.id,pid),field=fieldTotalOf(pid),st=productStat(pid),mar=(p.price||0)-(p.cost||0),mpct=p.price?Math.round(mar/p.price*100):0;
+  var mine=heldQty(S.me.id,pid),field=fieldTotalOf(pid),st=productStat(pid),mar=(p.price||0)-(p.cost||0),mpct=p.price?Math.round(mar/p.price*100):0,pct=(p.comm_pct!=null?p.comm_pct:0.05);
   var h=backBtn(isBoss?'entrepot':'stock');
   h+='<div class="card center"><div style="font-size:46px;line-height:1">'+esc(p.emoji||'📦')+'</div><div class="h2 mut">'+esc(p.name)+'</div><div class="sm">'+esc(p.cat)+(p.sku?' • '+esc(p.sku):'')+'</div></div>';
   h+='<div class="card"><div class="lrow between"><div class="sm">Prix de vente</div><div class="h3">'+money(p.price)+'</div></div>';
   if(isBoss)h+='<div class="lrow between"><div class="sm">Coût d\'achat</div><div class="semi">'+money(p.cost)+'</div></div><div class="lrow between"><div class="sm">Marge unitaire</div><div class="semi" style="color:var(--success)">'+money(mar)+' ('+mpct+'%)</div></div>';
-  h+='<div class="lrow between"><div class="sm">Unité</div><div class="semi">'+esc(p.unit||'pièce')+'</div></div><div class="lrow between"><div class="sm">Seuil d\'alerte</div><div class="semi">'+(p.reorder||0)+'</div></div></div>';
+  h+='<div class="lrow between"><div class="sm">Unité</div><div class="semi">'+esc(p.unit||'pièce')+'</div></div><div class="lrow between"><div class="sm">Seuil d\'alerte</div><div class="semi">'+(p.reorder||0)+'</div></div><div class="lrow between"><div class="sm">Commission vendeur</div><div class="semi" style="color:var(--warn)">'+Math.round(pct*100)+' % • ≈ '+money(Math.round(pct*(p.price||0)))+' /u.</div></div></div>';
   if(isBoss){
     h+='<div class="card"><div class="row between"><div><div class="h1">'+p.stock+'</div><div class="cap">en entrepôt</div></div><div style="text-align:right"><div class="h3">'+field+'</div><div class="cap">sur le terrain</div></div><div style="text-align:right"><div class="h3">'+compact((p.stock||0)*(p.cost||0))+'</div><div class="cap">valeur (coût)</div></div></div>';
-    h+='<div class="row" style="gap:10px;margin-top:12px;align-items:center"><div class="cap grow">Corriger l\'inventaire</div><div class="stepper"><button class="rbtn sec" onclick="ZK.adjust(\''+pid+'\',-1)">−</button><div class="bold" style="min-width:46px;text-align:center">'+p.stock+'</div><button class="rbtn" onclick="ZK.adjust(\''+pid+'\',1)">+</button></div></div>';
+    h+='<div class="row" style="gap:10px;margin-top:12px;align-items:center"><div class="cap grow">Corriger l\'inventaire (stock réel)</div><input id="stk_'+pid+'" type="number" inputmode="numeric" min="0" value="'+p.stock+'" style="width:64px;padding:9px 6px;text-align:center"><button class="rbtn" style="width:auto;padding:0 12px;background:var(--alt);color:var(--text)" onclick="ZK.setStock(\''+pid+'\')">✓</button></div>';
+    h+='<div class="row" style="gap:10px;margin-top:10px;align-items:center"><div class="grow"><div class="cap">Commission vendeur (%)</div><div class="cap" id="pc_hint_'+pid+'" style="color:var(--warn)">≈ '+money(Math.round(pct*(p.price||0)))+' par unité vendue</div></div><input id="pc_'+pid+'" type="number" inputmode="decimal" min="0" step="0.5" value="'+(Math.round(pct*1000)/10)+'" oninput="ZK.pcHint(\''+pid+'\')" style="width:64px;padding:9px 6px;text-align:center"><span class="cap">%</span><button class="rbtn" style="width:auto;padding:0 12px;background:var(--alt);color:var(--text)" onclick="ZK.setProdComm(\''+pid+'\')">✓</button></div>';
     h+='<button class="sec full mut" onclick="ZK.receiveFor(\''+pid+'\')">📥 Réceptionner (achat)</button></div>';
     var holders=responsables().concat(commerciaux()).filter(function(a){return heldQty(a.id,pid)>0;}).sort(function(a,b){return heldQty(b.id,pid)-heldQty(a.id,pid);});
     h+='<div class="card"><div class="h3" style="margin-bottom:6px">Détenu par</div>'+(holders.length?holders.map(function(a){return '<div class="lrow"><div class="grow"><div class="semi ell">'+esc(a.name)+'</div><div class="cap">'+roleLabel(a.role)+'</div></div><div class="bold">'+heldQty(a.id,pid)+'</div></div>';}).join(''):'<div class="sm">Personne ne détient ce produit pour l\'instant.</div>')+'</div>';
@@ -348,7 +349,9 @@ function viewProduitNew(){
   h+='<label class="mut">Catégorie</label><input id="pf_cat" value="'+esc(f.cat||'')+'" placeholder="Ex. Épicerie" oninput="ZK.pf(\'cat\',this.value)">';
   h+='<div class="row mut" style="gap:10px"><div class="grow"><label>Prix de vente</label><input id="pf_price" type="number" inputmode="decimal" value="'+esc(f.price||'')+'" placeholder="0" oninput="ZK.pf(\'price\',this.value)"></div><div class="grow"><label>Coût d\'achat</label><input id="pf_cost" type="number" inputmode="decimal" value="'+esc(f.cost||'')+'" placeholder="0" oninput="ZK.pf(\'cost\',this.value)"></div></div>';
   h+='<div class="row mut" style="gap:10px"><div class="grow"><label>Stock initial</label><input id="pf_stock" type="number" inputmode="numeric" value="'+esc(f.stock||'')+'" placeholder="0" oninput="ZK.pf(\'stock\',this.value)"></div><div class="grow"><label>Unité</label><input id="pf_unit" value="'+esc(f.unit||'')+'" placeholder="pièce" oninput="ZK.pf(\'unit\',this.value)"></div></div>';
-  h+='<div class="cap mut">Si un stock initial et un coût sont saisis, l\'achat sera enregistré comme dépense.</div>';
+  var cpct=(parseFloat(f.comm_pct!=null?f.comm_pct:5)||0)/100,cprice=parseFloat(f.price)||0;
+  h+='<div class="row mut" style="gap:10px"><div class="grow"><label>Commission vendeur (%)</label><input id="pf_comm" type="number" inputmode="decimal" step="0.5" value="'+esc(f.comm_pct!=null?f.comm_pct:5)+'" placeholder="5" oninput="ZK.pf(\'comm_pct\',this.value)"></div><div class="grow"><label>≈ par unité</label><input id="pf_comm_amt" value="'+money(Math.round(cpct*cprice))+'" disabled></div></div>';
+  h+='<div class="cap mut">Chaque produit a sa commission : à la vente, le vendeur touche ce % du montant. La prime d\'équipe du responsable (2 %) reste à part.</div>';
   h+='<button class="full mut" onclick="ZK.saveProduct()">Enregistrer le produit</button></div>';
   return h;
 }
@@ -446,7 +449,7 @@ function viewEquipe(){
     h+='</div>';
   } else h+='<div class="card sm center">👑 Seul le président peut créer ou supprimer des comptes.</div>';
   // --- Organisation : chaque responsable, puis ses commerciaux (lecture seule ; on touche pour gérer) ---
-  function orow(p,ind){var rate=' • com. '+Math.round((p.comm||0)*100)+' %'+(p.role==='responsable'?' + éq. '+Math.round(teamRate(p)*100)+' %':'');
+  function orow(p,ind){var rate=(p.role==='responsable'?' • prime éq. '+Math.round(teamRate(p)*100)+' %':'');
     var inner=avatar(p.name,ind?32:40)+'<div class="grow" style="min-width:0"><div class="semi ell">'+(ind?'↳ ':'')+esc(p.name)+' ›</div><div class="cap ell">'+poste(p)+' • '+salesOf(p.id).length+' ventes • '+carriedOf(p.id)+' u.'+rate+'</div></div>';
     var actions=[{e:'🧾',c:'var(--gold)',fn:"ZK.openBulletin('"+p.id+"')"}];
     if(eligibleHolders().some(function(x){return x.id===p.id;}))actions.push({e:'📤',c:'var(--violet)',fn:"ZK.assignTo('"+p.id+"')"});
@@ -525,7 +528,8 @@ function viewMembre(id){
       h+='<label>Poste</label><select onchange="ZK.setRole(\''+m.id+'\',this.value)">'+['boss','responsable','commercial'].map(function(r){return '<option value="'+r+'" '+(m.role===r?'selected':'')+'>'+roleLabel(r)+'</option>';}).join('')+'</select>';
       if(m.role==='commercial'){var rsOpts=responsables().map(function(r){return '<option value="'+r.id+'" '+(m.mgr===r.id?'selected':'')+'>'+esc(firstName(r.name))+'</option>';}).join('');
         h+='<label class="mut">Responsable</label><select onchange="ZK.setMgr(\''+m.id+'\',this.value)"><option value="">— aucun —</option>'+rsOpts+'</select>';}
-      h+='<div class="row mut" style="gap:10px"><div class="grow"><label>Commission perso (%)</label><input type="number" inputmode="decimal" value="'+Math.round((m.comm||0)*100)+'" onchange="ZK.setComm(\''+m.id+'\',(parseFloat(this.value)||0)/100)"></div>'+(m.role==='responsable'?'<div class="grow"><label>Prime équipe (%)</label><input type="number" inputmode="decimal" value="'+Math.round(teamRate(m)*100)+'" onchange="ZK.setTeamComm(\''+m.id+'\',(parseFloat(this.value)||0)/100)"></div>':'')+'</div>';
+      if(m.role==='responsable')h+='<label class="mut">Prime d\'équipe (%)</label><input type="number" inputmode="decimal" value="'+Math.round(teamRate(m)*100)+'" onchange="ZK.setTeamComm(\''+m.id+'\',(parseFloat(this.value)||0)/100)">';
+      h+='<div class="cap mut">La commission des ventes est réglée <b>par produit</b> (ouvrez un produit dans l\'Entrepôt).</div>';
     }
     if(m.id!==S.me.id)h+='<button class="ghost full mut" style="color:var(--danger);border-color:var(--danger)" onclick="ZK.deleteUser(\''+m.id+'\',\''+esc((m.name||'').replace(/\x27/g,''))+'\')">🗑️ Supprimer ce compte</button>';
     h+='</div>';
@@ -597,7 +601,7 @@ function viewBulletin(id){
   if(m.email)h+='<div class="prow"><span style="font-size:12px;color:#585D73">Email</span><span class="semi" style="font-size:13px">'+esc(m.email)+'</span></div>';
   h+='<div style="height:8px"></div><div class="cap" style="font-weight:700;letter-spacing:.5px;color:#585D73">RÉMUNÉRATION</div>';
   h+='<div class="prow"><span>Salaire mensuel</span><span class="semi">'+money(sal)+'</span></div>';
-  h+='<div class="prow"><span>Commission personnelle<br><span style="font-size:11px;color:#8B90A6">'+Math.round((m.comm||0)*100)+' % de vos ventes de '+per+'</span></span><span class="semi">'+money(perso)+'</span></div>';
+  h+='<div class="prow"><span>Commission personnelle<br><span style="font-size:11px;color:#8B90A6">selon les produits vendus en '+per+'</span></span><span class="semi">'+money(perso)+'</span></div>';
   if(m.role==='responsable')h+='<div class="prow"><span>Prime d\'équipe<br><span style="font-size:11px;color:#8B90A6">'+Math.round(parts.rate*100)+' % des ventes de votre équipe</span></span><span class="semi">'+money(team)+'</span></div>';
   h+='<div class="prow" style="border-top:2px solid #141525;margin-top:4px"><span class="bold">TOTAL DU MOIS</span><span class="bold" style="font-size:18px">'+money(net)+'</span></div>';
   if(paidC+paidS>0)h+='<div class="prow"><span style="font-size:12px;color:#585D73">Déjà versé ce mois</span><span class="semi" style="font-size:13px">'+money(paidC+paidS)+'</span></div><div class="prow"><span class="bold">RESTE À VERSER</span><span class="bold">'+money(reste)+'</span></div>';
@@ -653,7 +657,8 @@ function shiftMonth(mk,delta){var p=(''+mk).split('-');return monthKey(new Date(
 function teamRate(m){return (m&&m.role==='responsable')?(m.team_comm!=null?m.team_comm:TEAM_OVERRIDE):0;}
 function salesInMonth(id,mk){return S.sales.filter(function(s){return s.seller_id===id&&saleMonth(s)===mk;});}
 function teamSalesInMonth(rid,mk){var ids={};commerciauxOf(rid).forEach(function(c){ids[c.id]=1;});return S.sales.filter(function(s){return ids[s.seller_id]&&saleMonth(s)===mk;});}
-function commParts(m,mk){if(!m)return {perso:0,team:0,rate:0};var perso=(m.comm||0)*sumT(salesInMonth(m.id,mk)),rate=teamRate(m),team=rate*sumT(teamSalesInMonth(m.id,mk));return {perso:perso,team:team,rate:rate};}
+function saleComm(s){var t=0;(s.sale_items||[]).forEach(function(it){var pct=(it.comm_pct!=null)?it.comm_pct:((prodById(it.product_id)||{}).comm_pct);if(pct==null)pct=0.05;t+=pct*(it.quantity||0)*(it.unit_price||0);});return t;}
+function commParts(m,mk){if(!m)return {perso:0,team:0,rate:0};var perso=salesInMonth(m.id,mk).reduce(function(s,x){return s+saleComm(x);},0),rate=teamRate(m),team=rate*sumT(teamSalesInMonth(m.id,mk));return {perso:perso,team:team,rate:rate};}
 function earnedComm(m,mk){if(!m)return 0;var p=commParts(m,mk);return Math.round(p.perso+p.team);}
 function paidFor(id,kind,mk){return S.payouts.filter(function(p){return p.member_id===id&&p.kind===kind&&p.period===mk;}).reduce(function(s,p){return s+(p.amount||0);},0);}
 function dueComm(m,mk){if(!m)return 0;return earnedComm(m,mk)-paidFor(m.id,'commission',mk);}
@@ -760,7 +765,7 @@ window.ZK={
   setPay:function(m){S.sel.pay=m;render();},
   setCust:function(v){S.sel.cust=v;},
   nu:function(k,v){S.nu[k]=v;if(k==='role'||k==='mgr')render();},
-  pf:function(k,v){S.pf[k]=v;if(k==='emoji')render();},
+  pf:function(k,v){S.pf[k]=v;if(k==='emoji')render();else if(k==='price'||k==='comm_pct'){var el=document.getElementById('pf_comm_amt');if(el){var pct=(parseFloat(S.pf.comm_pct!=null?S.pf.comm_pct:5)||0)/100,price=parseFloat(S.pf.price)||0;el.value=money(Math.round(pct*price));}}},
   rec:function(k,v){S.rec[k]=v;render();},
   exp:function(k,v){S.exp[k]=v;if(k==='category')render();},
   finTab:function(t){S.finTab=t;render();},
@@ -776,8 +781,10 @@ window.ZK={
   takeBack:async function(hid,pid){var el=document.getElementById('att_'+pid),n=parseInt(el&&el.value,10)||0;var holder=profById(hid),p=prodById(pid),held=heldQty(hid,pid);if(n<=0){toast('Entrez la quantité à reprendre');return;}if(n>held){toast('Il n\'en détient que '+held);return;}if(!window.confirm('Reprendre '+n+' × '+((p&&p.name)||'produit')+' à '+((holder&&holder.name)||'')+' ?'))return;var r=await sb.rpc('assign_stock',{p_holder:hid,p_product:pid,p_qty:-n});if(r.error){toastErr(r.error);return;}if(!r.data){toast('Rien à reprendre');}else{toast(Math.abs(r.data)+' unité(s) reprise(s) ✅');}await refresh();},
   adjust:async function(pid,d){var p=prodById(pid);if(!p)return;var r=await sb.from('products').update({stock:Math.max(0,(p.stock||0)+d)}).eq('id',pid);if(r.error){toastErr(r.error);return;}await refresh();},
   setStock:async function(pid){var el=document.getElementById('stk_'+pid),p=prodById(pid);if(!p)return;var n=parseInt(el&&el.value,10);if(isNaN(n)||n<0){toast('Nombre invalide');return;}if(n===(p.stock||0)){toast('Aucun changement');return;}if(!window.confirm('Corriger le stock de '+p.name+' : '+(p.stock||0)+' → '+n+' ?'))return;var r=await sb.from('products').update({stock:n}).eq('id',pid);if(r.error){toastErr(r.error);return;}toast('Stock corrigé ✅');await refresh();},
+  pcHint:function(pid){var el=document.getElementById('pc_'+pid),p=prodById(pid),s=document.getElementById('pc_hint_'+pid);if(!el||!p||!s)return;var pct=(parseFloat(el.value)||0)/100;s.textContent='≈ '+money(Math.round(pct*(p.price||0)))+' par unité vendue';},
+  setProdComm:async function(pid){var el=document.getElementById('pc_'+pid),p=prodById(pid);if(!p)return;var pct=(parseFloat(el&&el.value)||0)/100;if(pct<0){toast('Nombre invalide');return;}var r=await sb.from('products').update({comm_pct:pct}).eq('id',pid);if(r.error){toastErr(r.error);return;}toast('Commission mise à jour ✅');await refresh();},
   saveProduct:async function(){var f=S.pf;var name=(f.name||'').trim();var price=parseFloat(f.price)||0;var cost=parseFloat(f.cost)||0;var stock=parseInt(f.stock,10)||0;if(!name){toast('Nom requis');return;}
-    var ins=await sb.from('products').insert({name:name,cat:(f.cat||'Divers').trim()||'Divers',price:price,cost:cost,stock:stock,reorder:5,unit:(f.unit||'pièce').trim()||'pièce',emoji:f.emoji||'📦'}).select().maybeSingle();
+    var ins=await sb.from('products').insert({name:name,cat:(f.cat||'Divers').trim()||'Divers',price:price,cost:cost,stock:stock,reorder:5,unit:(f.unit||'pièce').trim()||'pièce',emoji:f.emoji||'📦',comm_pct:(parseFloat(f.comm_pct!=null?f.comm_pct:5)||0)/100}).select().maybeSingle();
     if(ins.error){toastErr(ins.error);return;}
     if(stock>0&&cost>0&&ins.data){var e=await sb.from('expenses').insert({label:'Achat — '+name,amount:stock*cost,category:'Achat stock',product_id:ins.data.id,qty:stock});if(e.error)toastErr(e.error);}
     S.pf={emoji:'📦'};toast('Produit enregistré ✅');S.route='entrepot';await refresh();},
