@@ -7,8 +7,8 @@ self.addEventListener('push', function(e){
   try { d = e.data ? e.data.json() : {}; } catch(_) { d = { title: 'ZKA', body: (e.data && e.data.text()) || '' }; }
   e.waitUntil(self.registration.showNotification(d.title || 'ZKA', {
     body: d.body || '',
-    icon: './icon.svg',
-    badge: './icon.svg',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
     tag: d.tag || undefined,
     data: d
   }));
