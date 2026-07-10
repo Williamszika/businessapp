@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09r (chat : réponse/citation + suppression) -->
+<!-- ZKA build: 2026-07-09s (chat : réponse + suppression + push) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -646,6 +646,9 @@ function viewDemandes(){
 
 /* ---------- Messagerie : chat public + messages privés ---------- */
 function roleColor(r){return r==='boss'?'#7C5CEC':r==='responsable'?'#0EA5E9':r==='commercial'?'#12B76A':'#8B90A6';}
+function urlB64ToUint8(s){var pad='='.repeat((4-s.length%4)%4);var b=(s+pad).replace(/-/g,'+').replace(/_/g,'/');var raw=atob(b);var arr=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);return arr;}
+function pushOn(){try{return localStorage.getItem('zk_push')==='1';}catch(e){return false;}}
+function pushSupported(){return ('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);}
 function byCreated(a,b){return +new Date(a.created_at)-+new Date(b.created_at);}
 function msgById(id){for(var i=0;i<S.messages.length;i++)if(S.messages[i].id===id)return S.messages[i];return null;}
 function publicMsgs(){return S.messages.filter(function(m){return m.scope==='public';}).slice().sort(byCreated);}
@@ -694,6 +697,7 @@ function viewChat(){
   var up=unreadPublic(),upr=unreadPriv();
   var h='<div class="h1" style="margin-bottom:10px">Messages</div>';
   h+='<div class="seg">'+[['public','💬 Public',up],['prives','🔒 Privés',upr]].map(function(x){return '<button class="'+(tab===x[0]?'on':'')+'" onclick="ZK.chatTab(\''+x[0]+'\')">'+x[1]+(x[2]>0?' '+unreadBadge(x[2]):'')+'</button>';}).join('')+'</div>';
+  if(pushSupported()&&!pushOn())h+='<div class="card row between" style="border-color:var(--violet)"><div class="row" style="gap:10px"><div class="ico" style="background:var(--primS)">🔔</div><div><div class="semi">Notifications</div><div class="cap">Être alerté des nouveaux messages</div></div></div><button class="sec" style="width:auto;padding:9px 14px" onclick="ZK.enablePush()">Activer</button></div>';
   if(tab==='prives')return h+chatPrives();
   var msgs=publicMsgs();
   h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px">'+[['boss','Direction'],['responsable','Responsables'],['commercial','Commerciaux']].map(function(x){return '<span class="cap"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+roleColor(x[0])+';margin-right:4px;vertical-align:middle"></span>'+x[1]+'</span>';}).join('')+'</div>';
@@ -880,6 +884,7 @@ window.ZK={
   openRecu:function(id){S.sel.saleId=id;S.route='recu';render();window.scrollTo(0,0);},
   openMembre:function(id){S.sel.mid=id;S.route='membre';render();window.scrollTo(0,0);},
   openBulletin:function(id){S.sel.bid=id;S.route='bulletin';render();window.scrollTo(0,0);},
+  enablePush:async function(){try{if(!pushSupported()){toast('Notifications non supportées sur cet appareil/navigateur');return;}var vk=(window.ZKA_SUPABASE||{}).vapidPublic;if(!vk){toast('Clé push non configurée');return;}var perm=await Notification.requestPermission();if(perm!=='granted'){toast('Notifications refusées dans les réglages');return;}var reg=await navigator.serviceWorker.ready;var sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8(vk)});var j=sub.toJSON();var r=await sb.from('push_subscriptions').upsert({endpoint:j.endpoint,user_id:S.me.id,p256dh:j.keys.p256dh,auth:j.keys.auth});if(r.error){toastErr(r.error);return;}try{localStorage.setItem('zk_push','1');}catch(e){}toast('Notifications activées ✅');render();}catch(e){toast('Activation impossible : '+((e&&e.message)||e));}},
   chatTab:function(t){S.chatTab=t;S.replyTo=null;render();},
   openDM:function(id){S.sel.peer=id;S.replyTo=null;S.route='dm';render();},
   replyTo:function(id){S.replyTo=id;render();var el=document.getElementById('msg_input');if(el)el.focus();},
@@ -958,7 +963,7 @@ function onSwipe(dir){
 /* ---------- Démarrage ---------- */
 if(!cfg.url||!cfg.anonKey){ app.innerHTML='<div class="content"><div class="card"><b>Serveur non configuré.</b><div class="sm mut">Renseignez vos clés Supabase dans <code>demo/config.js</code>.</div></div></div>'; }
 else if(!window.supabase||!window.supabase.createClient){ app.innerHTML='<div class="content"><div class="card"><span class="badge dg">Hors ligne</span><div class="sm mut">La librairie Supabase n\'a pas pu être chargée (connexion internet ?).</div></div></div>'; }
-else{ sb=window.supabase.createClient(cfg.url,cfg.anonKey); sb.auth.getSession().then(function(res){ if(res.data&&res.data.session)afterLogin(); else renderLogin(); }); }
+else{ sb=window.supabase.createClient(cfg.url,cfg.anonKey); if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(function(){});} sb.auth.getSession().then(function(res){ if(res.data&&res.data.session)afterLogin(); else renderLogin(); }); }
 })();
 </script>
 </body>
