@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09w (vocaux universels : ré-encodage MP3 pour lecture sur tous les téléphones) -->
+<!-- ZKA build: 2026-07-10a (notifications globales : stock, demandes, ventes crédit, versements, alertes + centre 🔔) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -80,7 +80,7 @@
 "use strict";
 var app=document.getElementById('app'),toastEl=document.getElementById('toast');
 var cfg=window.ZKA_SUPABASE||{}, sb=null;
-var S={me:null,products:[],holdings:[],profiles:[],movements:[],sales:[],expenses:[],payouts:[],payout_requests:[],stock_requests:[],messages:[],route:'accueil',sel:{},cart:{},nu:{role:'commercial'},pf:{emoji:'📦'},rec:{},exp:{category:'Achat stock'},req:{},finTab:'benef',chatTab:'public'};
+var S={me:null,products:[],holdings:[],profiles:[],movements:[],sales:[],expenses:[],payouts:[],payout_requests:[],stock_requests:[],messages:[],notifications:[],route:'accueil',sel:{},cart:{},nu:{role:'commercial'},pf:{emoji:'📦'},rec:{},exp:{category:'Achat stock'},req:{},finTab:'benef',chatTab:'public'};
 var DAY=86400000,MO=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 var TEAM_OVERRIDE=0.02; // commission d'équipe du responsable (% des ventes de ses commerciaux)
 
@@ -152,10 +152,11 @@ async function loadAll(){
     sb.from('payouts').select('*').order('paid_at',{ascending:false}).limit(200),
     sb.from('payout_requests').select('*').order('requested_at',{ascending:false}).limit(200),
     sb.from('stock_requests').select('*').order('requested_at',{ascending:false}).limit(200),
-    sb.from('messages').select('*').order('created_at',{ascending:false}).limit(400)
+    sb.from('messages').select('*').order('created_at',{ascending:false}).limit(400),
+    sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(100)
   ]);
   for(var i=0;i<r.length;i++)if(r[i].error&&i<5)toastErr(r[i].error);
-  S.products=r[0].data||[]; S.profiles=r[1].data||[]; S.holdings=r[2].data||[]; S.movements=r[3].data||[]; S.sales=r[4].data||[]; S.expenses=r[5].data||[]; S.payouts=r[6].data||[]; S.payout_requests=r[7].data||[]; S.stock_requests=r[8].data||[]; S.messages=r[9].data||[];
+  S.products=r[0].data||[]; S.profiles=r[1].data||[]; S.holdings=r[2].data||[]; S.movements=r[3].data||[]; S.sales=r[4].data||[]; S.expenses=r[5].data||[]; S.payouts=r[6].data||[]; S.payout_requests=r[7].data||[]; S.stock_requests=r[8].data||[]; S.messages=r[9].data||[]; S.notifications=(r[10]&&r[10].data)||[];
 }
 var _rt=null;
 function subscribe(){ if(_rt)return; _rt=sb.channel('zka').on('postgres_changes',{event:'*',schema:'public'},function(){clearTimeout(subscribe._t);subscribe._t=setTimeout(refresh,350);}).subscribe(); }
@@ -169,7 +170,21 @@ function notifyNew(prevMax){
       .forEach(function(m){var s=profById(m.sender_id);try{var n=new Notification((m.scope==='public'?'💬 ':'🔒 ')+((s&&s.name)||'Message'),{body:(m.kind==='text'?(m.body||''):msgPreview(m)),icon:'./icon.svg',tag:m.id});n.onclick=function(){try{window.focus();}catch(e){}n.close();};}catch(e){}});
   }catch(e){}
 }
-async function refresh(){ var prev=(S._maxMsgTs!=null)?S._maxMsgTs:null; await loadAll(); if(prev!=null)notifyNew(prev); S._maxMsgTs=maxMsgTs(); render(); }
+function maxNotifTs(){var mx=0;S.notifications.forEach(function(n){var t=+new Date(n.created_at);if(t>mx)mx=t;});return mx;}
+function notifUnread(){return S.notifications.filter(function(n){return !n.read;}).length;}
+function notifIcon(k){return k==='stock'?'📦':k==='demande'?'📥':k==='vente'?'🧾':k==='versement'?'💵':k==='alerte'?'⚠️':'🔔';}
+function notifyNewNotifs(prevMax){
+  try{
+    var fresh=S.notifications.filter(function(n){return +new Date(n.created_at)>prevMax;});
+    if(!fresh.length)return;
+    var last=fresh[0];
+    if(!document.hidden){toast(notifIcon(last.kind)+' '+(last.title||'Notification'));}
+    if(('Notification' in window)&&Notification.permission==='granted'&&document.hidden){
+      fresh.slice(0,3).forEach(function(n){try{var no=new Notification((n.title||'Notification'),{body:n.body||'',icon:'./icon.svg',tag:'notif-'+n.id});no.onclick=function(){try{window.focus();}catch(e){}no.close();};}catch(e){}});
+    }
+  }catch(e){}
+}
+async function refresh(){ var prev=(S._maxMsgTs!=null)?S._maxMsgTs:null; var prevN=(S._maxNotifTs!=null)?S._maxNotifTs:null; await loadAll(); if(prev!=null)notifyNew(prev); if(prevN!=null)notifyNewNotifs(prevN); S._maxMsgTs=maxMsgTs(); S._maxNotifTs=maxNotifTs(); render(); }
 
 /* ---------- Auth ---------- */
 async function afterLogin(){
@@ -177,7 +192,7 @@ async function afterLogin(){
   var pr=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();
   if(pr.error){ renderFatal(pr.error.message); return; }
   S.me=pr.data||{id:u.id,name:u.email,role:'—'};
-  await loadAll(); S._maxMsgTs=maxMsgTs(); subscribe(); S.route='accueil'; render();
+  await loadAll(); S._maxMsgTs=maxMsgTs(); S._maxNotifTs=maxNotifTs(); subscribe(); S.route='accueil'; render();
   try{if(!localStorage.getItem('zk_swipe')){localStorage.setItem('zk_swipe','1');setTimeout(function(){toast('Astuce : glissez ◀ ▶ pour changer d\'onglet');},1000);}}catch(e){}
 }
 async function doLogin(){
@@ -229,6 +244,7 @@ function render(){
     case 'demandes':body=viewDemandes();break;
     case 'chat':body=viewChat();break;
     case 'dm':body=viewDM(S.sel.peer);break;
+    case 'notifs':body=viewNotifications();break;
     default:body=viewAccueil();
   }
   var tabs=tabsFor();
@@ -236,7 +252,7 @@ function render(){
   app.innerHTML='<div class="content">'+body+'</div>'+bar;
   if(S.route==='chat'||S.route==='dm'){var c=app.querySelector('.content');if(c)c.scrollTop=c.scrollHeight;}
 }
-function topRow(){return '<div class="row between" style="margin-bottom:12px"><div class="row" style="gap:10px;cursor:pointer" onclick="ZK.go(\'profil\')">'+avatar(S.me.name,42)+'<div><div class="semi ell">'+esc(S.me.name)+'</div><div class="cap">'+poste(S.me)+' ›</div></div></div><button class="ghost" style="padding:9px 12px" onclick="ZK.logout()">Quitter</button></div>';}
+function topRow(){var un=notifUnread();var bell='<button class="ghost" style="padding:9px 12px;position:relative" onclick="ZK.go(\'notifs\')" title="Notifications">🔔'+(un>0?'<span style="position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--danger);color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;line-height:1">'+(un>9?'9+':un)+'</span>':'')+'</button>';return '<div class="row between" style="margin-bottom:12px"><div class="row" style="gap:10px;cursor:pointer" onclick="ZK.go(\'profil\')">'+avatar(S.me.name,42)+'<div><div class="semi ell">'+esc(S.me.name)+'</div><div class="cap">'+poste(S.me)+' ›</div></div></div><div class="row" style="gap:8px">'+bell+'<button class="ghost" style="padding:9px 12px" onclick="ZK.logout()">Quitter</button></div></div>';}
 function greet(){var h=new Date().getHours();return h<12?'Bonjour':h<18?'Bon après-midi':'Bonsoir';}
 function stat(icon,tone,label,val,go){var t={success:['var(--successS)','var(--success)'],primary:['var(--primS)','var(--violet)'],info:['var(--infoS)','var(--info)'],accent:['var(--goldS)','var(--warn)']}[tone]||['var(--alt)','var(--t2)'];var click=go?' style="cursor:pointer" onclick="ZK.go(\''+go+'\')"':'';return '<div class="stat"'+click+'><div class="ico" style="background:'+t[0]+'">'+icon+'</div><div class="h2 mut ell">'+val+'</div><div class="cap">'+label+(go?' ›':'')+'</div></div>';}
 function chartCard(sales){var series=seriesDaily(sales,14);return '<div class="card"><div class="h3">'+compact(series.reduce(function(s,d){return s+d.v;},0))+'</div><div class="cap" style="margin-bottom:10px">Chiffre — 14 derniers jours</div>'+lineChart(series)+'</div>';}
@@ -299,6 +315,17 @@ function dashCom(){
 }
 function recentSales(a,title){var rec=a.slice(0,5);if(!rec.length)return '<div class="card sm center">Aucune vente pour l\'instant.</div>';
   return '<div class="card"><div class="h3" style="margin-bottom:8px">'+title+'</div>'+rec.map(function(s){var seller=profById(s.seller_id),d=new Date(s.created_at);return '<div class="lrow" style="cursor:pointer" onclick="ZK.openRecu(\''+s.id+'\')"><div class="ico" style="background:var(--successS)">🧾</div><div class="grow"><div class="semi ell">'+esc(s.customer||'Client comptant')+' ›</div><div class="cap">'+(role()!=='commercial'&&seller?esc(firstName(seller.name))+' • ':'')+d.toLocaleDateString('fr-FR')+'</div></div><div class="semi" style="color:var(--success)">'+money(s.total)+'</div></div>';}).join('')+'</div>';}
+
+/* ---------- Notifications ---------- */
+function fmtWhen(iso){if(!iso)return '';var d=new Date(iso),now=new Date();var sameDay=d.toDateString()===now.toDateString();return (sameDay?"Aujourd'hui":d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}))+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+function viewNotifications(){
+  var list=S.notifications.slice().sort(function(a,b){return +new Date(b.created_at)-+new Date(a.created_at);});
+  var un=notifUnread(),h=backBtn('accueil');
+  h+='<div class="row between" style="margin-bottom:12px"><div class="h2">🔔 Notifications</div>'+(un>0?'<button class="ghost mut" style="padding:8px 12px" onclick="ZK.markAllNotifs()">Tout marquer lu</button>':'')+'</div>';
+  if(!list.length)return h+'<div class="card sm center">Aucune notification pour l\'instant.</div>';
+  h+='<div class="card">'+list.map(function(n){var route=n.route||'accueil';return '<div class="lrow" style="cursor:pointer'+(n.read?'':';background:var(--sunken)')+'" onclick="ZK.openNotif(\''+n.id+'\',\''+esc(route)+'\')"><div class="ico" style="background:var(--alt)">'+notifIcon(n.kind)+'</div><div class="grow" style="min-width:0"><div class="'+(n.read?'semi':'bold')+' ell">'+esc(n.title||'')+'</div><div class="cap ell">'+esc(n.body||'')+'</div><div class="cap" style="color:var(--faint)">'+fmtWhen(n.created_at)+'</div></div>'+(n.read?'':'<span style="width:9px;height:9px;border-radius:50%;background:var(--danger);flex:none"></span>')+'</div>';}).join('')+'</div>';
+  return h;
+}
 
 /* ---------- Entrepôt (boss) ---------- */
 function viewEntrepot(){
@@ -893,6 +920,8 @@ function finProduits(){
 /* ---------- Actions ---------- */
 window.ZK={
   go:function(r){S.route=r;S.replyTo=null;render();window.scrollTo(0,0);},
+  openNotif:async function(id,route){var n=null;for(var i=0;i<S.notifications.length;i++)if(S.notifications[i].id===id){n=S.notifications[i];break;}if(n&&!n.read){n.read=true;S._maxNotifTs=maxNotifTs();try{await sb.from('notifications').update({read:true}).eq('id',id);}catch(e){}}S.route=route||'accueil';S.replyTo=null;render();window.scrollTo(0,0);},
+  markAllNotifs:async function(){var ids=S.notifications.filter(function(n){return !n.read;}).map(function(n){return n.id;});if(!ids.length)return;S.notifications.forEach(function(n){n.read=true;});render();try{await sb.from('notifications').update({read:true}).in('id',ids);}catch(e){}},
   openProduct:function(id){S.sel.pid=id;S.route='produit';render();window.scrollTo(0,0);},
   receiveFor:function(id){S.rec={pid:id};S.route='reception';render();window.scrollTo(0,0);},
   logout:logout,

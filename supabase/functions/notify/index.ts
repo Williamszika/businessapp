@@ -1,6 +1,9 @@
-// ZKA — Edge Function "notify"
-// Envoie une notification push aux destinataires quand un message est inséré.
-// Déclenchée par un Database Webhook (Supabase) sur INSERT de public.messages.
+// ZKA — Edge Function "notify" (déployée sous le nom "super-handler")
+// Envoie une notification push aux destinataires quand :
+//   • un message de chat est inséré (table "messages"), ou
+//   • une notification métier est insérée (table "notifications" :
+//     stock, demandes, ventes à crédit, versements, alertes…).
+// Déclenchée par un trigger pg_net sur INSERT.
 //
 // Secrets à définir (Project Settings → Edge Functions → Secrets) :
 //   VAPID_PUBLIC   = clé publique VAPID (même que demo/config.js → vapidPublic)
@@ -21,13 +24,48 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
+// Envoie le même payload à tous les abonnements des `targets`, en purgeant
+// les abonnements expirés (404/410).
+async function pushTo(targets: string[], payload: Record<string, unknown>) {
+  targets = targets.filter((id) => !!id);
+  if (!targets.length) return;
+  const { data: subs } = await supabase.from("push_subscriptions").select("*").in("user_id", targets);
+  await Promise.all((subs || []).map(async (s: any) => {
+    try {
+      await webpush.sendNotification(
+        { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+        JSON.stringify(payload),
+      );
+    } catch (err: any) {
+      if (err && (err.statusCode === 404 || err.statusCode === 410)) {
+        await supabase.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
+      }
+    }
+  }));
+}
+
 Deno.serve(async (req) => {
   let payload: any = {};
   try { payload = await req.json(); } catch (_) { /* ignore */ }
-  const m = payload.record;
-  if (!m || !m.sender_id) return new Response("no record", { status: 200 });
+  const table = payload.table;
+  const rec = payload.record;
+  if (!rec) return new Response("no record", { status: 200 });
 
-  // Destinataires
+  // ---- Notifications métier ----
+  if (table === "notifications") {
+    if (!rec.user_id) return new Response("no target", { status: 200 });
+    await pushTo([rec.user_id], {
+      title: rec.title || "ZKA",
+      body: rec.body || "",
+      tag: "notif-" + (rec.kind || "info"),
+    });
+    return new Response("ok", { status: 200 });
+  }
+
+  // ---- Messages du chat ----
+  const m = rec;
+  if (!m.sender_id) return new Response("no record", { status: 200 });
+
   let targets: string[] = [];
   if (m.scope === "dm" && m.recipient_id) {
     targets = [m.recipient_id];
@@ -46,19 +84,6 @@ Deno.serve(async (req) => {
     : m.kind === "audio" ? "🎤 Message vocal"
     : "📎 Document";
 
-  const { data: subs } = await supabase.from("push_subscriptions").select("*").in("user_id", targets);
-  await Promise.all((subs || []).map(async (s: any) => {
-    try {
-      await webpush.sendNotification(
-        { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-        JSON.stringify({ title, body, tag: m.scope === "dm" ? "dm-" + m.sender_id : "public" }),
-      );
-    } catch (err: any) {
-      if (err && (err.statusCode === 404 || err.statusCode === 410)) {
-        await supabase.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
-      }
-    }
-  }));
-
+  await pushTo(targets, { title, body, tag: m.scope === "dm" ? "dm-" + m.sender_id : "public" });
   return new Response("ok", { status: 200 });
 });
