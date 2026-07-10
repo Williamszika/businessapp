@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09s (chat : réponse + suppression + push) -->
+<!-- ZKA build: 2026-07-09t (notifs app ouverte/arrière-plan, sans config) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -159,7 +159,17 @@ async function loadAll(){
 }
 var _rt=null;
 function subscribe(){ if(_rt)return; _rt=sb.channel('zka').on('postgres_changes',{event:'*',schema:'public'},function(){clearTimeout(subscribe._t);subscribe._t=setTimeout(refresh,350);}).subscribe(); }
-async function refresh(){ await loadAll(); render(); }
+function maxMsgTs(){var mx=0;S.messages.forEach(function(m){var t=+new Date(m.created_at);if(t>mx)mx=t;});return mx;}
+function notifyNew(prevMax){
+  try{
+    if(!('Notification' in window)||Notification.permission!=='granted')return;
+    if(!document.hidden && (S.route==='chat'||S.route==='dm'))return; // déjà en train de regarder le chat
+    var me=S.me&&S.me.id;
+    S.messages.filter(function(m){return +new Date(m.created_at)>prevMax&&m.sender_id!==me&&(m.scope==='public'||m.recipient_id===me);})
+      .forEach(function(m){var s=profById(m.sender_id);try{var n=new Notification((m.scope==='public'?'💬 ':'🔒 ')+((s&&s.name)||'Message'),{body:(m.kind==='text'?(m.body||''):msgPreview(m)),icon:'./icon.svg',tag:m.id});n.onclick=function(){try{window.focus();}catch(e){}n.close();};}catch(e){}});
+  }catch(e){}
+}
+async function refresh(){ var prev=(S._maxMsgTs!=null)?S._maxMsgTs:null; await loadAll(); if(prev!=null)notifyNew(prev); S._maxMsgTs=maxMsgTs(); render(); }
 
 /* ---------- Auth ---------- */
 async function afterLogin(){
@@ -167,7 +177,7 @@ async function afterLogin(){
   var pr=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();
   if(pr.error){ renderFatal(pr.error.message); return; }
   S.me=pr.data||{id:u.id,name:u.email,role:'—'};
-  await loadAll(); subscribe(); S.route='accueil'; render();
+  await loadAll(); S._maxMsgTs=maxMsgTs(); subscribe(); S.route='accueil'; render();
   try{if(!localStorage.getItem('zk_swipe')){localStorage.setItem('zk_swipe','1');setTimeout(function(){toast('Astuce : glissez ◀ ▶ pour changer d\'onglet');},1000);}}catch(e){}
 }
 async function doLogin(){
