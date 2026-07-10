@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09t (notifs app ouverte/arrière-plan, sans config) -->
+<!-- ZKA build: 2026-07-09u (partage des identifiants à la création de compte) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -434,6 +434,15 @@ function viewTerrain(){
 }
 
 /* ---------- Équipe + création de comptes (boss) ---------- */
+function credMsg(c){var link='https://williamszika.github.io/businessapp/demo/serveur.html';return 'Bonjour '+(c.name||'')+', voici votre accès à l\'application ZKA :\n'+link+'\nIdentifiant (email) : '+c.email+'\nMot de passe : '+c.pw+'\nAstuce : vous pourrez changer ce mot de passe dans « Mon profil ».';}
+function credCard(){
+  if(!S.created)return '';var c=S.created;
+  return '<div class="card" style="border:2px solid var(--success)"><div class="row between" style="margin-bottom:6px"><div class="semi" style="color:var(--success)">✅ Compte créé — '+esc(c.name||c.email)+'</div><button class="rbtn sec" style="width:28px;height:28px;padding:0" onclick="ZK.clearCred()">✕</button></div>'
+    +'<div class="lrow between"><div class="sm">Identifiant (email)</div><div class="semi ell">'+esc(c.email)+'</div></div>'
+    +'<div class="lrow between"><div class="sm">Mot de passe</div><div class="semi">'+esc(c.pw)+'</div></div>'
+    +'<div class="cap mut" style="margin-top:4px">Envoyez ces identifiants à la personne. Elle pourra changer le mot de passe dans son profil.</div>'
+    +'<div class="row" style="gap:8px;margin-top:8px"><button class="grow" onclick="ZK.shareCred()">📤 Partager (WhatsApp/SMS)</button><button class="sec" style="width:auto;padding:12px 14px" onclick="ZK.copyCred()">📋</button></div></div>';
+}
 function viewEquipe(){
   var h='<div class="h1" style="margin-bottom:12px">Équipe</div>';
   if(role()==='responsable'){var team=commerciauxOf(S.me.id);
@@ -443,6 +452,7 @@ function viewEquipe(){
   }
   var pres=isPresident();
   h+='<div class="cap" style="margin-bottom:8px">Touchez un membre pour son détail ; glissez son nom vers la gauche pour les actions rapides (🧾 bulletin, 📤 attribuer, 🗑️ supprimer).</div>';
+  h+=credCard();
   // --- Direction (bureau — 5 fauteuils) ---
   var bs=bosses(),totalShare=bs.reduce(function(s,b){return s+(b.own||0);},0);
   h+='<div class="h3" style="margin-bottom:8px">🏛️ Direction — '+bs.length+'/5 fauteuils</div>';
@@ -905,10 +915,14 @@ window.ZK={
   recStart:async function(scope,peer){if(!navigator.mediaDevices||!window.MediaRecorder){toast('Vocal non supporté sur cet appareil');return;}try{var stream=await navigator.mediaDevices.getUserMedia({audio:true});var mr=new MediaRecorder(stream);S._rec={on:true,mr:mr,chunks:[],scope:scope,peer:peer,stream:stream};mr.ondataavailable=function(e){if(e.data&&e.data.size)S._rec.chunks.push(e.data);};mr.onstop=async function(){var rc=S._rec;S._rec=null;try{stream.getTracks().forEach(function(t){t.stop();});}catch(e){}var blob=new Blob(rc.chunks,{type:(rc.chunks[0]&&rc.chunks[0].type)||'audio/webm'});if(!blob.size){render();return;}toast('Envoi du vocal…');var path=S.me.id+'/'+Date.now()+'_vocal.webm';var up=await sb.storage.from('chat').upload(path,blob,{contentType:blob.type});if(up.error){toastErr(up.error);render();return;}var url=sb.storage.from('chat').getPublicUrl(path).data.publicUrl;var row={scope:rc.scope,sender_id:S.me.id,kind:'audio',url:url,name:'Message vocal'};if(rc.scope==='dm')row.recipient_id=rc.peer;var r=await sb.from('messages').insert(row);if(r.error)toastErr(r.error);await refresh();};mr.start();render();}catch(e){toast('Micro indisponible ou refusé');S._rec=null;}},
   recStop:function(){if(S._rec&&S._rec.mr&&S._rec.mr.state!=='inactive')S._rec.mr.stop();else{S._rec=null;render();}},
   assignTo:function(id){S.sel.holder=id;S.route='attribuer';render();window.scrollTo(0,0);},
-  createUser:async function(){var f=S.nu;var b=document.getElementById('btnCreate');if(!f.email||!f.pw){toast('Email et mot de passe requis');return;}if(f.role==='commercial'&&!f.mgr){toast('Choisissez le responsable de ce commercial');return;}b.textContent='Création…';b.disabled=true;
+  createUser:async function(){var f=S.nu;var b=document.getElementById('btnCreate');if(!f.email||!f.pw){toast('Email et mot de passe requis');return;}if(f.role==='commercial'&&!f.mgr){toast('Choisissez le responsable de ce commercial');return;}if(b){b.textContent='Création…';b.disabled=true;}
     var r=await sb.rpc('admin_create_user',{p_email:f.email,p_password:f.pw,p_name:f.name||null,p_role:f.role||'commercial',p_mgr:f.mgr||null});
-    if(r.error){toast('⚠ '+(r.error.message||r.error));b.textContent='Créer le compte';b.disabled=false;return;}
+    if(r.error){toast('⚠ '+(r.error.message||r.error));if(b){b.textContent='Créer le compte';b.disabled=false;}return;}
+    S.created={name:f.name||f.email,email:f.email,pw:f.pw,role:f.role||'commercial'};
     toast('Compte créé ✅');S.nu={role:'commercial'};S.showCreate=false;await refresh();},
+  clearCred:function(){S.created=null;render();},
+  shareCred:async function(){var c=S.created;if(!c)return;var msg=credMsg(c);try{if(navigator.share){await navigator.share({title:'Accès ZKA',text:msg});}else{window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');}}catch(e){}},
+  copyCred:async function(){var c=S.created;if(!c)return;var msg=credMsg(c);try{await navigator.clipboard.writeText(msg);toast('Identifiants copiés ✅');}catch(e){try{window.prompt('Copiez ce message :',msg);}catch(e2){}}},
   setRole:async function(id,r){var res=await sb.rpc('admin_set_role',{p_target:id,p_role:r});if(res.error){toastErr(res.error);return;}toast('Poste mis à jour');await refresh();},
   setMgr:async function(id,m){var res=await sb.rpc('admin_set_mgr',{p_target:id,p_mgr:m||null});if(res.error){toastErr(res.error);return;}toast('Rattachement mis à jour');await refresh();},
   setShare:async function(id,v){var res=await sb.rpc('admin_set_share',{p_target:id,p_own:parseFloat(v)||0});if(res.error){toastErr(res.error);return;}toast('Part mise à jour');await refresh();},
