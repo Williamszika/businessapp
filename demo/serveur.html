@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-10b (finances : historique mois par mois depuis le début — chiffre, stock libéré, dépenses, bénéfice) -->
+<!-- ZKA build: 2026-07-10c (cumul dû par membre tous mois + détail par mois cliquable vers le bulletin) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -588,6 +588,14 @@ function viewMembre(id){
     if(m.id!==S.me.id)h+='<button class="ghost full mut" style="color:var(--danger);border-color:var(--danger)" onclick="ZK.deleteUser(\''+m.id+'\',\''+esc((m.name||'').replace(/\x27/g,''))+'\')">🗑️ Supprimer ce compte</button>';
     h+='</div>';
   }
+  if(!isB){
+    var tdc=totalDue(m,'commission'),tds=totalDue(m,'salaire'),tda=tdc+tds,rhist=remunHistory(m);
+    h+='<div class="card"><div class="h3" style="margin-bottom:8px">💰 Rémunération cumulée (tous mois)</div>'
+      +'<div class="lrow between"><div class="sm">Commissions dues (cumul)</div><div class="semi" style="color:'+(tdc>0?'var(--warn)':'var(--success)')+'">'+money(tdc)+'</div></div>'
+      +((m.salary||0)>0?'<div class="lrow between"><div class="sm">Salaires dus (cumul)</div><div class="semi" style="color:'+(tds>0?'var(--warn)':'var(--success)')+'">'+money(tds)+'</div></div>':'')
+      +'<div class="lrow between" style="border-top:1px solid var(--border);margin-top:4px;padding-top:8px"><div class="bold">Total à verser</div><div class="bold" style="color:'+(tda>0?'var(--warn)':'var(--success)')+'">'+money(tda)+'</div></div></div>';
+    if(rhist.length)h+='<div class="h3" style="margin:14px 0 8px">Détail par mois</div><div class="card">'+rhist.map(function(r){var paye=(r.rC<=0&&r.rS<=0);return '<div class="lrow wrap" style="cursor:pointer" onclick="ZK.openBulletinMonth(\''+m.id+'\',\''+r.mk+'\')"><div class="grow" style="min-width:0"><div class="semi ell" style="text-transform:capitalize">'+monthLabel(r.mk)+' ›</div><div class="cap ell">comm. '+money(r.eC)+(r.sal>0?' • sal. '+money(r.sal):'')+'</div></div><div style="text-align:right">'+(paye?'<span class="badge ok">payé ✓</span>':'<div class="semi" style="color:var(--warn)">reste '+money(r.rC+r.rS)+'</div>')+'</div></div>';}).join('')+'</div>';
+  }
   if(!isB)h+='<button class="full sec" onclick="ZK.openBulletin(\''+m.id+'\')" style="margin-bottom:12px">🧾 Bulletin de paie</button>';
   if(eligibleHolders().some(function(a){return a.id===m.id;}))h+='<button class="full" onclick="ZK.assignTo(\''+m.id+'\')" style="margin-bottom:12px">📤 Lui attribuer du stock</button>';
   if(!isB){
@@ -839,6 +847,12 @@ function earnedComm(m,mk){if(!m)return 0;var p=commParts(m,mk);return Math.round
 function paidFor(id,kind,mk){return S.payouts.filter(function(p){return p.member_id===id&&p.kind===kind&&p.period===mk;}).reduce(function(s,p){return s+(p.amount||0);},0);}
 function dueComm(m,mk){if(!m)return 0;return earnedComm(m,mk)-paidFor(m.id,'commission',mk);}
 function dueSalary(m,mk){if(!m)return 0;return (m.salary||0)-paidFor(m.id,'salaire',mk);}
+/* Cumul dû tous mois confondus (chaque mois clampé à 0, jamais négatif) */
+function memberStartMonth(m){return monthKey(new Date(m&&m.created_at?m.created_at:Date.now()));}
+function monthsRange(fromMk,toMk){var arr=[],mk=fromMk,g=0;while(mk<=toMk&&g<600){arr.push(mk);mk=shiftMonth(mk,1);g++;}return arr;}
+function totalDue(m,kind){if(!m)return 0;var t=0;monthsRange(memberStartMonth(m),curMonth()).forEach(function(mk){var earned=(kind==='commission')?earnedComm(m,mk):(m.salary||0);t+=Math.max(0,earned-paidFor(m.id,kind,mk));});return t;}
+function totalDueAll(m){return totalDue(m,'commission')+totalDue(m,'salaire');}
+function remunHistory(m){var rows=[];monthsRange(memberStartMonth(m),curMonth()).forEach(function(mk){var eC=earnedComm(m,mk),pC=paidFor(m.id,'commission',mk),rC=Math.max(0,eC-pC);var sal=m.salary||0,pS=paidFor(m.id,'salaire',mk),rS=Math.max(0,sal-pS);if(eC>0||pC>0||sal>0||pS>0)rows.push({mk:mk,eC:eC,pC:pC,rC:rC,sal:sal,pS:pS,rS:rS});});return rows.reverse();}
 function monthNav(mk,action){return '<div class="row between" style="margin-bottom:12px;background:var(--sunken);border-radius:11px;padding:6px 8px"><button class="rbtn sec" onclick="ZK.'+action+'(\''+shiftMonth(mk,-1)+'\')">‹</button><div class="semi" style="text-transform:capitalize">'+monthLabel(mk)+'</div><button class="rbtn sec" '+(mk>=curMonth()?'disabled':'')+' onclick="ZK.'+action+'(\''+shiftMonth(mk,1)+'\')">›</button></div>';}
 function payoutsOf(id){return S.payouts.filter(function(p){return p.member_id===id;});}
 function pendingReq(id,kind){return S.payout_requests.filter(function(r){return r.member_id===id&&r.status==='en_attente'&&(!kind||r.kind===kind);});}
@@ -849,6 +863,8 @@ function remunCards(){
   h+='<div class="card"><div class="row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">💵</div><div><div class="semi">Ma commission — '+monthLabel(mk)+'</div><div class="cap">gagnée '+money(earned)+(paid>0?' • déjà versé '+money(paid):'')+'</div></div></div><div class="h2" style="color:var(--success)">'+money(due)+'</div></div>'+brk
     +(pend?'<div class="cap mut">⏳ Demande de versement en attente</div>':'<button class="sec full mut" '+(due<=0?'disabled':'')+' onclick="ZK.requestPayout(\'commission\','+due+')">Demander le versement</button>')+'</div>';
   if((m.salary||0)>0){var paidS=paidFor(m.id,'salaire',mk),dueS=Math.max(0,(m.salary||0)-paidS),ps=pendingReq(m.id,'salaire').length;h+='<div class="card"><div class="row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--infoS)">🗓️</div><div><div class="semi">Mon salaire — '+monthLabel(mk)+'</div><div class="cap">'+money(m.salary)+(paidS>0?' • déjà versé '+money(paidS):'')+'</div></div></div><div class="h2">'+money(dueS)+'</div></div>'+(ps?'<div class="cap mut">⏳ Demande en attente</div>':'<button class="sec full mut" '+(dueS<=0?'disabled':'')+' onclick="ZK.requestPayout(\'salaire\','+dueS+')">Demander mon salaire</button>')+'</div>';}
+  var tda=totalDueAll(m);
+  if(tda>0){var tdc=totalDue(m,'commission'),tds=totalDue(m,'salaire');h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">🧮</div><div><div class="semi">Total qui m\'est dû</div><div class="cap">tous les mois impayés'+(tds>0?' (comm. '+money(tdc)+' + sal. '+money(tds)+')':'')+'</div></div></div><div class="h2" style="color:var(--warn)">'+money(tda)+'</div></div>';}
   var mp=payoutsOf(m.id);
   if(mp.length)h+='<div class="card"><div class="h3" style="margin-bottom:6px">Mes versements reçus</div>'+mp.slice(0,8).map(function(p){return '<div class="lrow"><div class="grow"><div class="sm semi">'+(p.kind==='commission'?'Commission':'Salaire')+(p.period?' • '+monthLabel(p.period):'')+'</div><div class="cap">'+fmtDate(p.paid_at)+'</div></div><div class="semi" style="color:var(--success)">'+money(p.amount)+'</div></div>';}).join('')+'</div>';
   return h;
@@ -867,11 +883,13 @@ function finPaie(){
   h+='<div class="h3" style="margin-bottom:8px">Demandes de versement ('+pend.length+')</div>';
   if(!pend.length)h+='<div class="card sm center">Aucune demande en attente.</div>';
   else h+='<div class="card">'+pend.map(function(r){var m=profById(r.member_id);var amt=Math.max(0,r.kind==='commission'?dueComm(m,mk):dueSalary(m,mk));return '<div class="lrow wrap"><div class="grow" style="cursor:pointer" onclick="ZK.openMembre(\''+r.member_id+'\')"><div class="semi ell">'+esc(m?m.name:'?')+' ›</div><div class="cap">'+(r.kind==='commission'?'Commission':'Salaire')+' • demandé '+fmtDate(r.requested_at)+'</div></div><div class="semi">'+money(amt)+'</div>'+(pres&&amt>0?'<button class="rbtn" style="background:var(--successS);color:var(--success);width:auto;padding:0 12px" onclick="ZK.payMonth(\''+r.member_id+'\',\''+r.kind+'\')">Payer</button>':'')+'</div>';}).join('')+'</div>';
-  h+='<div class="h3" style="margin:14px 0 8px">Rémunérations — '+monthLabel(mk)+'</div>';
   var members=responsables().concat(commerciaux());
+  var teamDue=members.reduce(function(s,mm){return s+totalDueAll(mm);},0);
+  h+='<div class="card row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">🧮</div><div><div class="semi">Total à verser à l\'équipe</div><div class="cap">cumul de tous les mois impayés (commissions + salaires)</div></div></div><div class="h2" style="color:'+(teamDue>0?'var(--warn)':'var(--faint)')+'">'+money(teamDue)+'</div></div>';
+  h+='<div class="h3" style="margin:14px 0 8px">Rémunérations — '+monthLabel(mk)+'</div>';
   if(!members.length)h+='<div class="card sm center">Aucun membre.</div>';
-  else h+='<div class="card">'+members.map(function(m){var earned=earnedComm(m,mk),dueC=earned-paidFor(m.id,'commission',mk),dueS=(m.salary||0)-paidFor(m.id,'salaire',mk);
-    return '<div class="lrow wrap"><div class="grow" style="cursor:pointer" onclick="ZK.openMembre(\''+m.id+'\')"><div class="semi ell">'+esc(m.name)+' ›</div><div class="cap ell">'+poste(m)+' • comm. '+money(earned)+(dueC>0?' <span style="color:var(--warn)">(reste '+money(dueC)+')</span>':(earned>0?' ✓':''))+'</div></div>'
+  else h+='<div class="card">'+members.map(function(m){var earned=earnedComm(m,mk),dueC=earned-paidFor(m.id,'commission',mk),dueS=(m.salary||0)-paidFor(m.id,'salaire',mk),cum=totalDueAll(m);
+    return '<div class="lrow wrap"><div class="grow" style="cursor:pointer" onclick="ZK.openMembre(\''+m.id+'\')"><div class="semi ell">'+esc(m.name)+' ›</div><div class="cap ell">'+poste(m)+' • comm. '+money(earned)+(dueC>0?' <span style="color:var(--warn)">(reste '+money(dueC)+')</span>':(earned>0?' ✓':''))+(cum>0?'<br><span style="color:var(--warn)">💰 cumul dû (tous mois) : '+money(cum)+'</span>':'')+'</div></div>'
       +(pres?('<span class="cap">Sal.</span><input type="number" value="'+(m.salary||0)+'" onchange="ZK.setSalary(\''+m.id+'\',this.value)" style="width:74px;padding:8px" title="Salaire mensuel"><div class="row" style="gap:6px">'+(dueC>0?'<button class="rbtn" style="background:var(--goldS);color:var(--warn)" title="Payer la commission du mois" onclick="ZK.payMonth(\''+m.id+'\',\'commission\')">💵</button>':'')+(dueS>0?'<button class="rbtn" style="background:var(--infoS);color:var(--info)" title="Payer le salaire du mois" onclick="ZK.payMonth(\''+m.id+'\',\'salaire\')">🗓️</button>':'')+'</div>'):('<div class="semi">'+money(m.salary||0)+'</div>'))+'</div>';}).join('')+'</div>';
   var hist=S.payouts.filter(function(p){return p.period===mk;});
   h+='<div class="h3" style="margin:14px 0 8px">Versements — '+monthLabel(mk)+'</div>';
@@ -992,7 +1010,8 @@ window.ZK={
   sell:async function(){var items=[],disp=[];Object.keys(S.cart).forEach(function(id){if(S.cart[id]>0){items.push({product_id:id,quantity:S.cart[id]});var p=prodById(id);disp.push((p?p.name:'?')+' ×'+S.cart[id]);}});if(!items.length){toast('Ajoutez un produit');return;}var total=items.reduce(function(s,it){var p=prodById(it.product_id);return s+(p?p.price:0)*it.quantity;},0);if(!window.confirm('Valider la vente ?\n'+disp.join(', ')+'\nTotal : '+money(total)+' ('+(S.sel.pay||'espèces')+(S.sel.cust?' — '+S.sel.cust:'')+')'))return;var r=await sb.rpc('record_sale',{p_items:items,p_pay:S.sel.pay||'espèces',p_customer:S.sel.cust||null});if(r.error){toastErr(r.error);return;}S.cart={};S.sel.cust='';await refresh();S.sel.saleId=r.data;S.route='recu';render();toast('Vente enregistrée ✅');},
   openRecu:function(id){S.sel.saleId=id;S.route='recu';render();window.scrollTo(0,0);},
   openMembre:function(id){S.sel.mid=id;S.route='membre';render();window.scrollTo(0,0);},
-  openBulletin:function(id){S.sel.bid=id;S.route='bulletin';render();window.scrollTo(0,0);},
+  openBulletin:function(id){S.sel.bid=id;S.bulMonth=curMonth();S.route='bulletin';render();window.scrollTo(0,0);},
+  openBulletinMonth:function(id,mk){S.sel.bid=id;S.bulMonth=mk;S.route='bulletin';render();window.scrollTo(0,0);},
   openFinMonth:function(mk){S.sel.fmonth=mk;S.route='finmois';render();window.scrollTo(0,0);},
   enablePush:async function(){try{if(!pushSupported()){toast('Notifications non supportées sur cet appareil/navigateur');return;}var vk=(window.ZKA_SUPABASE||{}).vapidPublic;if(!vk){toast('Clé push non configurée');return;}var perm=await Notification.requestPermission();if(perm!=='granted'){toast('Notifications refusées dans les réglages');return;}var reg=await navigator.serviceWorker.ready;var sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8(vk)});var j=sub.toJSON();var r=await sb.from('push_subscriptions').upsert({endpoint:j.endpoint,user_id:S.me.id,p256dh:j.keys.p256dh,auth:j.keys.auth});if(r.error){toastErr(r.error);return;}try{localStorage.setItem('zk_push','1');}catch(e){}toast('Notifications activées ✅');render();}catch(e){toast('Activation impossible : '+((e&&e.message)||e));}},
   chatTab:function(t){S.chatTab=t;S.replyTo=null;render();},
