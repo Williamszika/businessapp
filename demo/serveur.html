@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09p (messagerie : chat public + privés, fichiers/vocaux) -->
+<!-- ZKA build: 2026-07-09q (chat : pastilles de messages non lus) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -222,7 +222,7 @@ function render(){
     default:body=viewAccueil();
   }
   var tabs=tabsFor();
-  var bar='<div class="tabbar">'+tabs.map(function(t){return '<button class="tab '+(S.route===t[0]?'on':'')+'" onclick="ZK.go(\''+t[0]+'\')"><span class="ti">'+t[1]+'</span><span>'+t[2]+'</span></button>';}).join('')+'</div>';
+  var bar='<div class="tabbar">'+tabs.map(function(t){var u=(t[0]==='chat')?unreadTotal():0;var bd=u>0?'<span style="position:absolute;top:4px;left:calc(50% + 5px);min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--danger);color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;line-height:1">'+(u>9?'9+':u)+'</span>':'';return '<button class="tab '+(S.route===t[0]?'on':'')+'" style="position:relative" onclick="ZK.go(\''+t[0]+'\')">'+bd+'<span class="ti">'+t[1]+'</span><span>'+t[2]+'</span></button>';}).join('')+'</div>';
   app.innerHTML='<div class="content">'+body+'</div>'+bar;
   if(S.route==='chat'||S.route==='dm'){var c=app.querySelector('.content');if(c)c.scrollTop=c.scrollHeight;}
 }
@@ -650,6 +650,15 @@ function byCreated(a,b){return +new Date(a.created_at)-+new Date(b.created_at);}
 function publicMsgs(){return S.messages.filter(function(m){return m.scope==='public';}).slice().sort(byCreated);}
 function dmMsgs(peer){return S.messages.filter(function(m){return m.scope==='dm'&&((m.sender_id===S.me.id&&m.recipient_id===peer)||(m.sender_id===peer&&m.recipient_id===S.me.id));}).slice().sort(byCreated);}
 function lastDmWith(peer){var a=dmMsgs(peer);return a.length?a[a.length-1]:null;}
+function seenKey(chan){return 'zk_seen:'+((S.me&&S.me.id)||'?')+':'+chan;}
+function getSeen(chan){try{return +(localStorage.getItem(seenKey(chan))||0);}catch(e){return 0;}}
+function setSeen(chan){try{localStorage.setItem(seenKey(chan),''+Date.now());}catch(e){}}
+function unreadIn(list,chan){var s=getSeen(chan);return list.filter(function(m){return m.sender_id!==(S.me&&S.me.id)&&+new Date(m.created_at)>s;}).length;}
+function unreadPublic(){return unreadIn(publicMsgs(),'public');}
+function unreadDM(peer){return unreadIn(dmMsgs(peer),'dm:'+peer);}
+function unreadPriv(){var t=0;S.profiles.forEach(function(p){if(p.id!==(S.me&&S.me.id))t+=unreadDM(p.id);});return t;}
+function unreadTotal(){return unreadPublic()+unreadPriv();}
+function unreadBadge(n,style){return n>0?'<span class="badge dg" style="'+(style||'')+'">'+(n>9?'9+':n)+'</span>':'';}
 function msgPreview(m){if(!m)return 'Démarrer la conversation';return m.kind==='image'?'📷 Photo':m.kind==='audio'?'🎤 Message vocal':m.kind==='file'?('📎 '+(m.name||'Document')):(m.body||'');}
 function msgBubble(m,showHead){
   var mine=m.sender_id===S.me.id,sender=profById(m.sender_id),col=roleColor(sender&&sender.role);
@@ -676,8 +685,10 @@ function composer(scope,peer){
 }
 function viewChat(){
   var tab=S.chatTab||'public';
+  if(tab==='public')setSeen('public');
+  var up=unreadPublic(),upr=unreadPriv();
   var h='<div class="h1" style="margin-bottom:10px">Messages</div>';
-  h+='<div class="seg">'+[['public','💬 Public'],['prives','🔒 Privés']].map(function(x){return '<button class="'+(tab===x[0]?'on':'')+'" onclick="ZK.chatTab(\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div>';
+  h+='<div class="seg">'+[['public','💬 Public',up],['prives','🔒 Privés',upr]].map(function(x){return '<button class="'+(tab===x[0]?'on':'')+'" onclick="ZK.chatTab(\''+x[0]+'\')">'+x[1]+(x[2]>0?' '+unreadBadge(x[2]):'')+'</button>';}).join('')+'</div>';
   if(tab==='prives')return h+chatPrives();
   var msgs=publicMsgs();
   h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px">'+[['boss','Direction'],['responsable','Responsables'],['commercial','Commerciaux']].map(function(x){return '<span class="cap"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+roleColor(x[0])+';margin-right:4px;vertical-align:middle"></span>'+x[1]+'</span>';}).join('')+'</div>';
@@ -690,12 +701,13 @@ function chatPrives(){
   var h='<div class="cap" style="margin-bottom:8px">Touchez un membre pour discuter en privé.</div>';
   if(!members.length)return h+'<div class="card sm center">Aucun autre membre.</div>';
   members.sort(function(a,b){var la=lastDmWith(a.id),lb=lastDmWith(b.id);return (lb?+new Date(lb.created_at):0)-(la?+new Date(la.created_at):0);});
-  h+='<div class="card">'+members.map(function(p){var last=lastDmWith(p.id),col=roleColor(p.role);return '<div class="lrow" style="cursor:pointer" onclick="ZK.openDM(\''+p.id+'\')">'+avatar(p.name,40)+'<div class="grow" style="min-width:0"><div class="semi ell">'+esc(p.name)+' <span class="badge" style="background:'+col+'22;color:'+col+'">'+poste(p)+'</span></div><div class="cap ell">'+esc(msgPreview(last))+'</div></div>'+(last?'<div class="cap">'+new Date(last.created_at).toLocaleDateString('fr-FR')+'</div>':'')+'</div>';}).join('')+'</div>';
+  h+='<div class="card">'+members.map(function(p){var last=lastDmWith(p.id),col=roleColor(p.role),un=unreadDM(p.id);return '<div class="lrow" style="cursor:pointer" onclick="ZK.openDM(\''+p.id+'\')">'+avatar(p.name,40)+'<div class="grow" style="min-width:0"><div class="'+(un>0?'bold':'semi')+' ell">'+esc(p.name)+' <span class="badge" style="background:'+col+'22;color:'+col+'">'+poste(p)+'</span></div><div class="cap ell">'+esc(msgPreview(last))+'</div></div>'+(last?'<div class="cap" style="text-align:right">'+new Date(last.created_at).toLocaleDateString('fr-FR')+'</div>':'')+(un>0?' '+unreadBadge(un):'')+'</div>';}).join('')+'</div>';
   return h;
 }
 function viewDM(peer){
   var p=profById(peer);
   if(!p)return backBtn('chat')+'<div class="card sm center">Membre introuvable.</div>';
+  setSeen('dm:'+peer);
   var col=roleColor(p.role),h=backBtn('chat');
   h+='<div class="card row" style="gap:10px">'+avatar(p.name,42)+'<div class="grow"><div class="semi">'+esc(p.name)+'</div><div class="cap"><span class="badge" style="background:'+col+'22;color:'+col+'">'+poste(p)+'</span></div></div></div>';
   var msgs=dmMsgs(peer);
