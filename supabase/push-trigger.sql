@@ -12,7 +12,7 @@ create or replace function public.notify_new_message()
 returns trigger language plpgsql security definer set search_path = public, extensions as $$
 begin
   perform net.http_post(
-    url     := 'https://cwfwzwiuhjuyiaaqmhmu.supabase.co/functions/v1/notify',
+    url     := 'https://cwfwzwiuhjuyiaaqmhmu.supabase.co/functions/v1/super-handler',
     headers := jsonb_build_object('Content-Type','application/json'),
     body    := jsonb_build_object('type','INSERT','table','messages','record', to_jsonb(new))
   );
