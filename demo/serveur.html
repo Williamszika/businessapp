@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-10g (vocaux : limite 2 min + compteur + arrêt auto + écoute/suppression avant envoi + durée affichée) -->
+<!-- ZKA build: 2026-07-10h (zone sûre : l'en-tête ne passe plus sous la barre d'état / l'encoche ; boutons toujours accessibles) -->
 <style>
   /* ===== ZKA — thème « noir & or » premium (dark-first) ===== */
   :root{
@@ -26,7 +26,7 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--text)}
   #app{max-width:460px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg)}
-  .content{flex:1;overflow-y:auto;padding:16px;padding-bottom:24px}
+  .content{flex:1;overflow-y:auto;padding:calc(14px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 24px calc(16px + env(safe-area-inset-left))}
   .h1{font-size:25px;font-weight:800;letter-spacing:-.6px}.h2{font-size:19px;font-weight:800;letter-spacing:-.3px}.h3{font-size:16px;font-weight:700}
   .sm{font-size:13px;color:var(--t2)}.cap{font-size:11px;color:var(--faint)}.bold{font-weight:700}.semi{font-weight:600}.mut{margin-top:8px}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px}
@@ -263,7 +263,7 @@ function render(){
   app.innerHTML='<div class="content">'+body+'</div>'+bar;
   if(S.route==='chat'||S.route==='dm'){var c=app.querySelector('.content');if(c)c.scrollTop=c.scrollHeight;}
 }
-function topRow(){var un=notifUnread();var bell='<button class="ghost" style="padding:9px 12px;position:relative" onclick="ZK.go(\'notifs\')" title="Notifications">🔔'+(un>0?'<span style="position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--danger);color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;line-height:1">'+(un>9?'9+':un)+'</span>':'')+'</button>';return '<div class="row between" style="margin-bottom:12px"><div class="row" style="gap:10px;cursor:pointer" onclick="ZK.go(\'profil\')">'+avatar(S.me.name,42)+'<div><div class="semi ell">'+esc(S.me.name)+'</div><div class="cap">'+poste(S.me)+' ›</div></div></div><div class="row" style="gap:8px">'+bell+'<button class="ghost" style="padding:9px 12px" onclick="ZK.logout()">Quitter</button></div></div>';}
+function topRow(){var un=notifUnread();var bell='<button class="ghost" style="padding:9px 12px;position:relative" onclick="ZK.go(\'notifs\')" title="Notifications">🔔'+(un>0?'<span style="position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--danger);color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;line-height:1">'+(un>9?'9+':un)+'</span>':'')+'</button>';return '<div class="row between" style="margin-bottom:12px;gap:8px"><div class="row grow" style="gap:10px;min-width:0;cursor:pointer" onclick="ZK.go(\'profil\')">'+avatar(S.me.name,42)+'<div style="min-width:0"><div class="semi ell">'+esc(S.me.name)+'</div><div class="cap ell">'+poste(S.me)+' ›</div></div></div><div class="row" style="gap:8px;flex:none">'+bell+'<button class="ghost" style="padding:9px 12px" onclick="ZK.logout()">Quitter</button></div></div>';}
 function greet(){var h=new Date().getHours();return h<12?'Bonjour':h<18?'Bon après-midi':'Bonsoir';}
 function stat(icon,tone,label,val,go){var t={success:['var(--successS)','var(--success)'],primary:['var(--primS)','var(--violet)'],info:['var(--infoS)','var(--info)'],accent:['var(--goldS)','var(--warn)']}[tone]||['var(--alt)','var(--t2)'];var click=go?' style="cursor:pointer" onclick="ZK.go(\''+go+'\')"':'';return '<div class="stat"'+click+'><div class="ico" style="background:'+t[0]+'">'+icon+'</div><div class="h2 mut ell">'+val+'</div><div class="cap">'+label+(go?' ›':'')+'</div></div>';}
 function chartCard(sales){var series=seriesDaily(sales,14);return '<div class="card"><div class="h3">'+compact(series.reduce(function(s,d){return s+d.v;},0))+'</div><div class="cap" style="margin-bottom:10px">Chiffre — 14 derniers jours</div>'+lineChart(series)+'</div>';}
