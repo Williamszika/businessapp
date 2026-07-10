@@ -3,18 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#5A4BE0">
+<meta name="theme-color" content="#0A0A0C">
+<meta name="color-scheme" content="dark">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-10d (bouton « verser tout le cumul » : solde tous les mois impayés d'un membre) -->
+<!-- ZKA build: 2026-07-10e (nouvelle identité : logo Z doré + thème noir & or premium) -->
 <style>
-  :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
-    --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
-    --text:#141525;--t2:#585D73;--faint:#8B90A6;
-    --success:#0F9F63;--successS:#E6F7EF;--warn:#B45309;--warnS:#FDF0DD;--danger:#E1362B;--dangerS:#FDEBE9;--info:#1E7FE8;--infoS:#E6F1FE;--primS:#ECEAFC;--goldS:#FEF3DC;--shadow:rgba(30,28,70,.12);
-    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
-  @media (prefers-color-scheme:dark){:root{--bg:#0A0B12;--surface:#15171F;--alt:#1C1E29;--sunken:#101119;--border:#262A38;--text:#F3F4FA;--t2:#A7ACC2;--faint:#6B7189;--success:#2EC97D;--successS:#0F2A1E;--warn:#FDB022;--warnS:#2C2110;--danger:#F97066;--dangerS:#2C1614;--info:#53B1FD;--infoS:#0E2033;--primS:#211E3C;--goldS:#2C2413;--shadow:rgba(0,0,0,.5);}}
+  /* ===== ZKA — thème « noir & or » premium (dark-first) ===== */
+  :root{
+    --gold:#E9C86A;--goldHi:#F4DE9C;--gold2:#CDA04C;--goldDeep:#B8862F;--goldInk:#2A1E06;
+    --violet:#E9C86A;--violet2:#E9C86A;--violet3:#CDA04C;   /* alias : ancien violet → or */
+    --bg:#0A0A0C;--surface:#16151B;--alt:#201F27;--sunken:#0F0E13;--border:#2B2A22;
+    --text:#F5F1E6;--t2:#B7B1A1;--faint:#7E7869;
+    --success:#37C98A;--successS:#0E2A1E;--warn:#F5B841;--warnS:#2A2210;--danger:#F5766B;--dangerS:#2C1615;--info:#5BB2FA;--infoS:#0E2033;--primS:#241E10;--goldS:#241E10;--shadow:rgba(0,0,0,.55);
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:dark;}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--text)}
   #app{max-width:460px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg)}
@@ -25,13 +32,13 @@
   label{display:block;font-size:12px;font-weight:600;color:var(--t2);margin:0 0 6px}
   input,select{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;padding:12px 13px;outline:none}
   input:focus,select:focus{border-color:var(--violet)}
-  button{font-family:inherit;cursor:pointer;border:none;border-radius:12px;font-weight:700;font-size:15px;padding:13px 15px;background:var(--violet);color:#fff}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:12px;font-weight:700;font-size:15px;padding:13px 15px;background:linear-gradient(135deg,var(--goldHi),var(--gold2));color:var(--goldInk)}
   button.sec{background:var(--alt);color:var(--text)}button.ghost{background:transparent;border:1.5px solid var(--border);color:var(--text)}
   button:active{opacity:.85}button:disabled{opacity:.45}
   .full{width:100%}
   .row{display:flex;align-items:center;gap:10px}.between{justify-content:space-between}.wrap{flex-wrap:wrap}
   .grow{flex:1;min-width:0}.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.center{text-align:center}
-  .hero{border-radius:18px;padding:18px;background:linear-gradient(140deg,var(--violet2),var(--violet3) 70%,#A855F7);color:#fff;box-shadow:0 16px 30px -14px rgba(90,75,224,.6);margin-bottom:14px}
+  .hero{border-radius:18px;padding:18px;background:radial-gradient(135% 120% at 16% 0%,#251E0E 0%,#15130C 44%,#0B0A08 100%);color:#fff;border:1px solid #38301A;box-shadow:0 16px 34px -16px rgba(0,0,0,.85);margin-bottom:14px}
   .stat{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:12px;flex:1;min-width:0}
   .ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:17px}
   .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px}
@@ -42,7 +49,7 @@
   .rbtn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:19px;padding:0;flex:none}
   .track{height:7px;border-radius:999px;background:var(--sunken);overflow:hidden;margin-top:6px}.fill{height:100%;border-radius:999px;background:var(--violet)}
   .chip{display:inline-block;font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:999px;border:1px solid var(--border);color:var(--t2);background:var(--surface);white-space:nowrap}
-  .chip.on{background:var(--violet);color:#fff;border-color:var(--violet)}
+  .chip.on{background:var(--gold);color:var(--goldInk);border-color:var(--gold)}
   .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}.chips::-webkit-scrollbar{display:none}
   .seg{display:flex;background:var(--sunken);border-radius:11px;padding:3px;gap:3px;margin-bottom:12px}
   .seg button{flex:1;background:none;color:var(--t2);padding:8px;border-radius:8px;font-size:13px;font-weight:600}
@@ -89,7 +96,7 @@ function grp(x){return (''+x).replace(/\B(?=(\d{3})+(?!\d))/g,' ');}
 function money(n){return grp(Math.round(n||0))+' FCFA';}
 function compact(v){var a=Math.abs(v||0);if(a>=1e6)return grp((v/1e6).toFixed(1))+' M';if(a>=1e4)return grp(Math.round(v/1e3))+' k';return money(v);}
 function initials(n){var p=(''+n).trim().split(/\s+/);return ((p.length===1?p[0].slice(0,2):p[0][0]+p[p.length-1][0])||'?').toUpperCase();}
-var AVC=['#5A4BE0','#F5A623','#12B76A','#2E90FA','#EC4899','#0EA5E9','#8B5CF6','#14B8A6','#F97316'];
+var AVC=['#E9C86A','#F5B841','#34D399','#38BDF8','#F472B6','#A78BFA','#2DD4BF','#FB923C','#F87171'];
 function avColor(k){var h=0;k=''+k;for(var i=0;i<k.length;i++)h=((h<<5)-h+k.charCodeAt(i))|0;return AVC[Math.abs(h)%AVC.length];}
 function avatar(name,size){size=size||42;var c=avColor(name);return '<div class="av" style="width:'+size+'px;height:'+size+'px;background:'+c+';font-size:'+(size*0.36)+'px">'+esc(initials(name))+'</div>';}
 function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){toastEl.classList.remove('show');},2400);}
@@ -134,7 +141,7 @@ function scopeUnpaid(){if(role()==='boss')return S.sales.filter(isUnpaidCredit);
 function myStockReqs(){return S.stock_requests.filter(function(r){return r.requester_id===S.me.id;});}
 function incomingStockReqs(){var pend=S.stock_requests.filter(function(r){return r.status==='en_attente';});if(role()==='boss')return pend.filter(function(r){var q=profById(r.requester_id);return q&&q.role==='responsable';});if(role()==='responsable')return pend.filter(function(r){var q=profById(r.requester_id);return q&&q.mgr===S.me.id;});return [];}
 
-function lineChart(series,color){color=color||'#5A4BE0';var W=300,H=120,pt=10,pb=10,ch=H-pt-pb,max=1;series.forEach(function(d){if(d.v>max)max=d.v;});
+function lineChart(series,color){color=color||'#E9C86A';var W=300,H=120,pt=10,pb=10,ch=H-pt-pb,max=1;series.forEach(function(d){if(d.v>max)max=d.v;});
   var pts=series.map(function(d,i){return {x:series.length<=1?W/2:i/(series.length-1)*W,y:pt+ch-d.v/max*ch};});
   function path(pp){if(pp.length<2)return 'M '+(pp[0]?pp[0].x:0)+' '+(pp[0]?pp[0].y:0);var s='M '+pp[0].x+' '+pp[0].y;for(var i=0;i<pp.length-1;i++){var p0=pp[i-1]||pp[i],p1=pp[i],p2=pp[i+1],p3=pp[i+2]||p2;s+=' C '+(p1.x+(p2.x-p0.x)/6)+' '+(p1.y+(p2.y-p0.y)/6)+', '+(p2.x-(p3.x-p1.x)/6)+' '+(p2.y-(p3.y-p1.y)/6)+', '+p2.x+' '+p2.y;}return s;}
   var lp=path(pts),ap=lp+' L '+pts[pts.length-1].x+' '+H+' L '+pts[0].x+' '+H+' Z',last=pts[pts.length-1];
@@ -208,7 +215,7 @@ async function logout(){ await sb.auth.signOut(); S.me=null; renderLogin(); }
 
 /* ---------- Écrans de base ---------- */
 function renderLogin(err){
-  app.innerHTML='<div class="content"><div class="hero"><div class="cap" style="color:#fff;opacity:.85">ZKA</div><div class="h1">Connexion</div><div class="sm" style="color:#fff;opacity:.9">Espace direction & équipe</div></div>'
+  app.innerHTML='<div class="content"><div class="hero" style="text-align:center;padding-top:26px;padding-bottom:24px"><img src="./logo.svg" alt="ZKA" style="width:78px;height:78px;filter:drop-shadow(0 8px 18px rgba(233,200,106,.35))"><div style="font-size:27px;font-weight:800;letter-spacing:3px;color:var(--gold);margin-top:8px">ZKA</div><div class="h1" style="color:#fff;margin-top:2px">Connexion</div><div class="sm" style="color:#fff;opacity:.85">Espace direction &amp; équipe</div></div>'
    +'<div class="card">'+(err?'<div class="badge dg" style="margin-bottom:10px">'+esc(err)+'</div>':'')
    +'<label>Email</label><input id="email" type="email" autocapitalize="off" placeholder="vous@exemple.com">'
    +'<label style="margin-top:12px">Mot de passe</label><input id="pw" type="password" placeholder="••••••••">'
@@ -622,7 +629,7 @@ function viewRecu(id){
   var seller=profById(s.seller_id),d=new Date(s.created_at);
   var h=backBtn(backRoute);
   h+='<div class="card" style="padding:0;overflow:hidden">';
-  h+='<div style="background:linear-gradient(135deg,var(--violet2),var(--violet3));color:#fff;padding:18px;text-align:center"><div style="font-size:22px;font-weight:800;letter-spacing:-1px">ZKA</div><div class="cap" style="color:#fff;opacity:.9">REÇU DE VENTE</div><div style="font-size:22px;font-weight:800;margin-top:8px">'+money(s.total)+'</div><div class="cap" style="color:#fff;opacity:.9">N° '+esc(s.ref||'')+'</div></div>';
+  h+='<div style="background:linear-gradient(135deg,#241d0d,#0e0d0b);color:#fff;padding:18px;text-align:center;border-bottom:1px solid #38301A"><div style="font-size:22px;font-weight:800;letter-spacing:2px;color:var(--gold)">ZKA</div><div class="cap" style="color:#fff;opacity:.85">REÇU DE VENTE</div><div style="font-size:22px;font-weight:800;margin-top:8px;color:var(--gold)">'+money(s.total)+'</div><div class="cap" style="color:#fff;opacity:.85">N° '+esc(s.ref||'')+'</div></div>';
   h+='<div style="padding:16px">';
   h+='<div class="lrow between"><span class="sm">Date</span><span class="semi">'+d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</span></div>';
   h+='<div class="lrow between"><span class="sm">Vendeur</span><span class="semi">'+esc(seller?seller.name:'—')+'</span></div>';
@@ -703,7 +710,7 @@ function viewDemandes(){
 }
 
 /* ---------- Messagerie : chat public + messages privés ---------- */
-function roleColor(r){return r==='boss'?'#7C5CEC':r==='responsable'?'#0EA5E9':r==='commercial'?'#12B76A':'#8B90A6';}
+function roleColor(r){return r==='boss'?'#E9C86A':r==='responsable'?'#38BDF8':r==='commercial'?'#34D399':'#B7B1A1';}
 function urlB64ToUint8(s){var pad='='.repeat((4-s.length%4)%4);var b=(s+pad).replace(/-/g,'+').replace(/_/g,'/');var raw=atob(b);var arr=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);return arr;}
 function pushOn(){try{return localStorage.getItem('zk_push')==='1';}catch(e){return false;}}
 function pushSupported(){return ('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);}
@@ -764,7 +771,7 @@ function msgBubble(m,showHead){
   var t=new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var head=(showHead&&!mine)?'<div class="cap" style="margin:0 0 2px 2px"><b style="color:'+col+'">'+esc(sender?sender.name:'?')+'</b> <span class="badge" style="background:'+col+'22;color:'+col+'">'+poste(sender)+'</span></div>':'';
   var acts='<div class="cap" style="display:flex;gap:12px;margin:2px 4px 0;'+(mine?'justify-content:flex-end':'')+'"><span>'+t+'</span><span style="cursor:pointer" onclick="ZK.replyTo(\''+m.id+'\')">↩︎ Répondre</span>'+(mine?'<span style="cursor:pointer;color:var(--danger)" onclick="ZK.deleteMsg(\''+m.id+'\')">🗑 Supprimer</span>':'')+'</div>';
-  return '<div style="display:flex;flex-direction:column;align-items:'+(mine?'flex-end':'flex-start')+';margin-bottom:9px">'+head+'<div style="max-width:80%;padding:8px 11px;border-radius:15px;'+(mine?'border-bottom-right-radius:5px;background:var(--violet);color:#fff':'border-bottom-left-radius:5px;background:var(--alt);color:var(--text);border-left:3px solid '+col)+'">'+quoted+inner+'</div>'+acts+'</div>';
+  return '<div style="display:flex;flex-direction:column;align-items:'+(mine?'flex-end':'flex-start')+';margin-bottom:9px">'+head+'<div style="max-width:80%;padding:8px 11px;border-radius:15px;'+(mine?'border-bottom-right-radius:5px;background:var(--gold);color:var(--goldInk)':'border-bottom-left-radius:5px;background:var(--alt);color:var(--text);border-left:3px solid '+col)+'">'+quoted+inner+'</div>'+acts+'</div>';
 }
 function composer(scope,peer){
   var pv=peer?"'"+peer+"'":'null',rec=!!(S._rec&&S._rec.on);
