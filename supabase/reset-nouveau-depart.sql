@@ -15,6 +15,7 @@ delete from public.expenses;
 do $$ begin delete from public.payouts;         exception when undefined_table then null; end $$;
 do $$ begin delete from public.payout_requests; exception when undefined_table then null; end $$;
 do $$ begin delete from public.stock_requests;  exception when undefined_table then null; end $$;
+do $$ begin delete from public.messages;        exception when undefined_table then null; end $$;
 delete from public.holdings;
 delete from public.products;
 
