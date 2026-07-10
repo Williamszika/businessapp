@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-10c (cumul dû par membre tous mois + détail par mois cliquable vers le bulletin) -->
+<!-- ZKA build: 2026-07-10d (bouton « verser tout le cumul » : solde tous les mois impayés d'un membre) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -593,7 +593,7 @@ function viewMembre(id){
     h+='<div class="card"><div class="h3" style="margin-bottom:8px">💰 Rémunération cumulée (tous mois)</div>'
       +'<div class="lrow between"><div class="sm">Commissions dues (cumul)</div><div class="semi" style="color:'+(tdc>0?'var(--warn)':'var(--success)')+'">'+money(tdc)+'</div></div>'
       +((m.salary||0)>0?'<div class="lrow between"><div class="sm">Salaires dus (cumul)</div><div class="semi" style="color:'+(tds>0?'var(--warn)':'var(--success)')+'">'+money(tds)+'</div></div>':'')
-      +'<div class="lrow between" style="border-top:1px solid var(--border);margin-top:4px;padding-top:8px"><div class="bold">Total à verser</div><div class="bold" style="color:'+(tda>0?'var(--warn)':'var(--success)')+'">'+money(tda)+'</div></div></div>';
+      +'<div class="lrow between" style="border-top:1px solid var(--border);margin-top:4px;padding-top:8px"><div class="bold">Total à verser</div><div class="bold" style="color:'+(tda>0?'var(--warn)':'var(--success)')+'">'+money(tda)+'</div></div>'+(isPresident()&&tda>0?'<button class="full" style="margin-top:10px" onclick="ZK.payAll(\''+m.id+'\')">💸 Verser tout le cumul ('+money(tda)+')</button>':'')+'</div>';
     if(rhist.length)h+='<div class="h3" style="margin:14px 0 8px">Détail par mois</div><div class="card">'+rhist.map(function(r){var paye=(r.rC<=0&&r.rS<=0);return '<div class="lrow wrap" style="cursor:pointer" onclick="ZK.openBulletinMonth(\''+m.id+'\',\''+r.mk+'\')"><div class="grow" style="min-width:0"><div class="semi ell" style="text-transform:capitalize">'+monthLabel(r.mk)+' ›</div><div class="cap ell">comm. '+money(r.eC)+(r.sal>0?' • sal. '+money(r.sal):'')+'</div></div><div style="text-align:right">'+(paye?'<span class="badge ok">payé ✓</span>':'<div class="semi" style="color:var(--warn)">reste '+money(r.rC+r.rS)+'</div>')+'</div></div>';}).join('')+'</div>';
   }
   if(!isB)h+='<button class="full sec" onclick="ZK.openBulletin(\''+m.id+'\')" style="margin-bottom:12px">🧾 Bulletin de paie</button>';
@@ -1040,6 +1040,7 @@ window.ZK={
   setSalary:async function(id,v){var res=await sb.rpc('admin_set_salary',{p_target:id,p_salary:parseFloat(v)||0});if(res.error){toastErr(res.error);return;}toast('Salaire mis à jour');await refresh();},
   requestPayout:async function(kind,amount){var res=await sb.rpc('request_payout',{p_kind:kind,p_amount:amount});if(res.error){toastErr(res.error);return;}toast('Demande envoyée à la direction ✅');await refresh();},
   payMonth:async function(id,kind){var m=profById(id),mk=S.payMonth||curMonth();var amt=kind==='commission'?dueComm(m,mk):dueSalary(m,mk);if(amt<=0){toast('Rien à verser ce mois');return;}if(!window.confirm('Verser '+(kind==='commission'?'la commission':'le salaire')+' de '+((m&&m.name)||'')+' pour '+monthLabel(mk)+' : '+money(amt)+' ?'))return;var res=await sb.rpc('pay_member_month',{p_member:id,p_kind:kind,p_period:mk});if(res.error){toastErr(res.error);return;}toast('Versement enregistré ✅');await refresh();},
+  payAll:async function(id){var m=profById(id);if(!m)return;if(!isPresident()){toast('Réservé au président');return;}var rows=remunHistory(m),jobs=[],months={};rows.forEach(function(r){if(r.rC>0){jobs.push({mk:r.mk,kind:'commission'});months[r.mk]=1;}if(r.rS>0){jobs.push({mk:r.mk,kind:'salaire'});months[r.mk]=1;}});if(!jobs.length){toast('Rien à verser');return;}var total=totalDueAll(m);if(!window.confirm('Verser TOUT le cumul dû à '+m.name+' ?\n'+Object.keys(months).length+' mois • total '+money(total)))return;toast('Versements en cours…');var done=0;for(var i=0;i<jobs.length;i++){var j=jobs[i];var res=await sb.rpc('pay_member_month',{p_member:id,p_kind:j.kind,p_period:j.mk});if(res.error){if(/déjà réglé/i.test(res.error.message||'')){continue;}toastErr(res.error);await refresh();return;}done++;}await refresh();toast(done>0?('Cumul versé ✅ ('+done+' versement'+(done>1?'s':'')+')'):'Déjà à jour');},
   setPayMonth:function(mk){S.payMonth=mk;render();},
   setBulMonth:function(mk){S.bulMonth=mk;render();window.scrollTo(0,0);},
   deleteUser:async function(id,name){var m=profById(id);if(m&&m.role==='responsable'){var n=commerciauxOf(id).length;if(n){toast('Réattribuez d\'abord ses '+n+' commercial(aux) avant de supprimer ce responsable');return;}}if(!window.confirm('Supprimer définitivement le compte de '+name+' ?'))return;var r=await sb.rpc('admin_delete_user',{p_target:id});if(r.error){toast('⚠ '+(r.error.message||r.error));return;}toast('Compte supprimé');S.route='equipe';await refresh();},
