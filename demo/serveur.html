@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09l (attribuer : saisie quantité + confirmation) -->
+<!-- ZKA build: 2026-07-09m (paie mensuelle + routage demandes de stock) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -132,7 +132,7 @@ function unpaidOf(id){return S.sales.filter(function(s){return s.seller_id===id&
 function scopeUnpaid(){if(role()==='boss')return S.sales.filter(isUnpaidCredit);if(role()==='responsable'){var ids={};commerciauxOf(S.me.id).forEach(function(c){ids[c.id]=1;});ids[S.me.id]=1;return S.sales.filter(function(s){return ids[s.seller_id]&&isUnpaidCredit(s);});}return unpaidOf(S.me.id);}
 /* Demandes de réapprovisionnement */
 function myStockReqs(){return S.stock_requests.filter(function(r){return r.requester_id===S.me.id;});}
-function incomingStockReqs(){var pend=S.stock_requests.filter(function(r){return r.status==='en_attente';});if(role()==='boss')return pend;if(role()==='responsable')return pend.filter(function(r){var q=profById(r.requester_id);return q&&q.mgr===S.me.id;});return [];}
+function incomingStockReqs(){var pend=S.stock_requests.filter(function(r){return r.status==='en_attente';});if(role()==='boss')return pend.filter(function(r){var q=profById(r.requester_id);return q&&q.role==='responsable';});if(role()==='responsable')return pend.filter(function(r){var q=profById(r.requester_id);return q&&q.mgr===S.me.id;});return [];}
 
 function lineChart(series,color){color=color||'#5A4BE0';var W=300,H=120,pt=10,pb=10,ch=H-pt-pb,max=1;series.forEach(function(d){if(d.v>max)max=d.v;});
   var pts=series.map(function(d,i){return {x:series.length<=1?W/2:i/(series.length-1)*W,y:pt+ch-d.v/max*ch};});
@@ -512,8 +512,8 @@ function viewMembre(id){
   h+='<div class="card center"><div style="display:flex;justify-content:center;margin-bottom:6px">'+avatar(m.name,64)+'</div><div class="h2">'+esc(m.name)+'</div><span class="badge inf">'+poste(m)+'</span>'+(m.email?'<div class="cap mut">'+esc(m.email)+'</div>':'')+'</div>';
   var isB=m.role==='boss';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('🛒','primary','Ventes',my.length)+stat('💰','success','CA total',compact(sumT(my)))+'</div>';
-  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','info','En stock',carriedOf(m.id)+' u.')+(isB?stat('🏛️','accent','Part',(m.own||0)+' %'):stat('💵','accent','Comm. due',compact(commDue(m))))+'</div>';
-  h+='<div class="card"><div class="lrow between"><div class="sm">Arrivée sur le site</div><div class="semi">'+fmtDate(m.created_at)+'</div></div><div class="lrow between"><div class="sm">Ancienneté</div><div class="semi">'+tenure(m.created_at)+'</div></div><div class="lrow between"><div class="sm">CA depuis la prise de fonction</div><div class="semi" style="color:var(--success)">'+money(sumT(my))+'</div></div>'+(isB?'<div class="lrow between"><div class="sm">Part du bénéfice</div><div class="semi">'+(m.own||0)+' % • '+money(shareAmount(m.own))+'</div></div>':'<div class="lrow between"><div class="sm">Salaire mensuel</div><div class="semi">'+money(m.salary||0)+'</div></div><div class="lrow between"><div class="sm">Commission à percevoir</div><div class="semi" style="color:var(--success)">'+money(commDue(m))+'</div></div>')+'</div>';
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📦','info','En stock',carriedOf(m.id)+' u.')+(isB?stat('🏛️','accent','Part',(m.own||0)+' %'):stat('💵','accent','Comm. ce mois',compact(dueComm(m,curMonth()))))+'</div>';
+  h+='<div class="card"><div class="lrow between"><div class="sm">Arrivée sur le site</div><div class="semi">'+fmtDate(m.created_at)+'</div></div><div class="lrow between"><div class="sm">Ancienneté</div><div class="semi">'+tenure(m.created_at)+'</div></div><div class="lrow between"><div class="sm">CA total (depuis l\'arrivée)</div><div class="semi">'+money(sumT(my))+'</div></div><div class="lrow between"><div class="sm">CA ce mois ('+monthLabel(curMonth())+')</div><div class="semi" style="color:var(--success)">'+money(sumT(salesInMonth(m.id,curMonth())))+'</div></div>'+(isB?'<div class="lrow between"><div class="sm">Part du bénéfice</div><div class="semi">'+(m.own||0)+' % • '+money(shareAmount(m.own))+'</div></div>':'<div class="lrow between"><div class="sm">Salaire mensuel</div><div class="semi">'+money(m.salary||0)+'</div></div><div class="lrow between"><div class="sm">Commission à percevoir (ce mois)</div><div class="semi" style="color:var(--success)">'+money(dueComm(m,curMonth()))+'</div></div>')+'</div>';
   if(isPresident()){
     h+='<div class="card"><div class="h3" style="margin-bottom:10px">⚙️ Gestion (président)</div>';
     if(isB){
@@ -580,9 +580,12 @@ function viewBulletin(id){
   if(!m)return backBtn(back)+'<div class="card sm center">Membre introuvable.</div>';
   var canView=role()==='boss'||self||(role()==='responsable'&&m.mgr===S.me.id);
   if(!canView)return backBtn('accueil')+'<div class="card sm center">Accès refusé.</div>';
-  var parts=commParts(m),perso=Math.round(parts.perso),team=Math.round(parts.team),comm=commDue(m),sal=m.salary||0,net=sal+comm;
-  var now=new Date(),per=MO[now.getMonth()]+' '+now.getFullYear(),pv=payoutsOf(m.id);
+  var mk=S.bulMonth||(S.bulMonth=curMonth());
+  var parts=commParts(m,mk),perso=Math.round(parts.perso),team=Math.round(parts.team),comm=earnedComm(m,mk),sal=m.salary||0,net=sal+comm;
+  var paidC=paidFor(m.id,'commission',mk),paidS=paidFor(m.id,'salaire',mk),reste=(sal-paidS)+(comm-paidC);
+  var now=new Date(),per=monthLabel(mk),pv=payoutsOf(m.id).filter(function(p){return p.period===mk;});
   var h=backBtn(back);
+  h+='<div class="no-print">'+monthNav(mk,'setBulMonth')+'</div>';
   h+='<button class="full no-print" onclick="window.print()" style="margin-bottom:12px">🖨️ Imprimer / enregistrer en PDF</button>';
   h+='<div class="card paper" style="padding:0;overflow:hidden">';
   h+='<div style="padding:16px 18px;border-bottom:2px solid #141525"><div class="row between"><div><div style="font-size:20px;font-weight:800;letter-spacing:-.5px">ZKA</div><div style="font-size:11px;color:#585D73">Bulletin de paie</div></div><div style="text-align:right"><div class="semi">Période</div><div style="font-size:13px;color:#585D73">'+per+'</div></div></div></div>';
@@ -591,9 +594,10 @@ function viewBulletin(id){
   if(m.email)h+='<div class="prow"><span style="font-size:12px;color:#585D73">Email</span><span class="semi" style="font-size:13px">'+esc(m.email)+'</span></div>';
   h+='<div style="height:8px"></div><div class="cap" style="font-weight:700;letter-spacing:.5px;color:#585D73">RÉMUNÉRATION</div>';
   h+='<div class="prow"><span>Salaire mensuel</span><span class="semi">'+money(sal)+'</span></div>';
-  h+='<div class="prow"><span>Commission personnelle<br><span style="font-size:11px;color:#8B90A6">'+Math.round((m.comm||0)*100)+' % de vos ventes depuis le '+fmtDate(m.comm_paid_at)+'</span></span><span class="semi">'+money(perso)+'</span></div>';
+  h+='<div class="prow"><span>Commission personnelle<br><span style="font-size:11px;color:#8B90A6">'+Math.round((m.comm||0)*100)+' % de vos ventes de '+per+'</span></span><span class="semi">'+money(perso)+'</span></div>';
   if(m.role==='responsable')h+='<div class="prow"><span>Prime d\'équipe<br><span style="font-size:11px;color:#8B90A6">'+Math.round(parts.rate*100)+' % des ventes de votre équipe</span></span><span class="semi">'+money(team)+'</span></div>';
-  h+='<div class="prow" style="border-top:2px solid #141525;margin-top:4px"><span class="bold">NET À VERSER</span><span class="bold" style="font-size:18px">'+money(net)+'</span></div>';
+  h+='<div class="prow" style="border-top:2px solid #141525;margin-top:4px"><span class="bold">TOTAL DU MOIS</span><span class="bold" style="font-size:18px">'+money(net)+'</span></div>';
+  if(paidC+paidS>0)h+='<div class="prow"><span style="font-size:12px;color:#585D73">Déjà versé ce mois</span><span class="semi" style="font-size:13px">'+money(paidC+paidS)+'</span></div><div class="prow"><span class="bold">RESTE À VERSER</span><span class="bold">'+money(reste)+'</span></div>';
   h+='</div>';
   if(pv.length){h+='<div style="padding:0 18px 8px"><div class="cap" style="font-weight:700;letter-spacing:.5px;color:#585D73;margin-bottom:2px">VERSEMENTS DÉJÀ EFFECTUÉS</div>'+pv.slice(0,6).map(function(p){return '<div class="prow"><span style="font-size:12px">'+(p.kind==='commission'?'Commission':'Salaire')+' • '+fmtDate(p.paid_at)+'</span><span class="semi" style="font-size:13px">'+money(p.amount)+'</span></div>';}).join('')+'</div>';}
   h+='<div style="padding:22px 18px 16px" class="row between"><div style="text-align:center;font-size:11px;color:#585D73"><div style="border-top:1px solid #585D73;min-width:120px;padding-top:4px">Le salarié</div></div><div style="text-align:center;font-size:11px;color:#585D73"><div style="border-top:1px solid #585D73;min-width:120px;padding-top:4px">La direction</div></div></div>';
@@ -636,22 +640,33 @@ function netProfit(){return totalRevenue()-totalExpenses();}
 function shareAmount(own){return Math.max(0,Math.round((own||0)/100*netProfit()));}
 function fmtDate(iso){if(!iso)return '—';var d=new Date(iso);return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});}
 function tenure(iso){if(!iso)return '—';var ms=Date.now()-new Date(iso).getTime();if(ms<0)ms=0;var days=Math.floor(ms/DAY);if(days<1)return "aujourd'hui";if(days<31)return days+' jour'+(days>1?'s':'');var months=Math.floor(days/30.44);if(months<12)return months+' mois';var years=Math.floor(months/12),rem=months%12;return years+' an'+(years>1?'s':'')+(rem?' '+rem+' mois':'');}
-function salesSince(id,since){var t=since?+new Date(since):0;return S.sales.filter(function(s){return s.seller_id===id&&+new Date(s.created_at)>t;});}
-function teamSalesSince(rid,since){var ids={};commerciauxOf(rid).forEach(function(c){ids[c.id]=1;});var t=since?+new Date(since):0;return S.sales.filter(function(s){return ids[s.seller_id]&&+new Date(s.created_at)>t;});}
+/* ---------- Périodes mensuelles ---------- */
+function pad2(n){return (n<10?'0':'')+n;}
+function monthKey(d){d=d||new Date();return d.getUTCFullYear()+'-'+pad2(d.getUTCMonth()+1);}
+function curMonth(){return monthKey(new Date());}
+function saleMonth(s){return monthKey(new Date(s.created_at));}
+function monthLabel(mk){var p=(''+mk).split('-'),mi=parseInt(p[1],10)-1;return (MO[mi]||'?').replace('.','')+' '+p[0];}
+function shiftMonth(mk,delta){var p=(''+mk).split('-');return monthKey(new Date(Date.UTC(+p[0],(+p[1]-1)+delta,1)));}
 function teamRate(m){return (m&&m.role==='responsable')?(m.team_comm!=null?m.team_comm:TEAM_OVERRIDE):0;}
-function commParts(m){if(!m)return {perso:0,team:0,rate:0};var perso=(m.comm||0)*sumT(salesSince(m.id,m.comm_paid_at));var rate=teamRate(m);var team=rate*sumT(teamSalesSince(m.id,m.comm_paid_at));return {perso:perso,team:team,rate:rate};}
-function commDue(m){if(!m)return 0;var p=commParts(m);return Math.round(p.perso+p.team);}
+function salesInMonth(id,mk){return S.sales.filter(function(s){return s.seller_id===id&&saleMonth(s)===mk;});}
+function teamSalesInMonth(rid,mk){var ids={};commerciauxOf(rid).forEach(function(c){ids[c.id]=1;});return S.sales.filter(function(s){return ids[s.seller_id]&&saleMonth(s)===mk;});}
+function commParts(m,mk){if(!m)return {perso:0,team:0,rate:0};var perso=(m.comm||0)*sumT(salesInMonth(m.id,mk)),rate=teamRate(m),team=rate*sumT(teamSalesInMonth(m.id,mk));return {perso:perso,team:team,rate:rate};}
+function earnedComm(m,mk){if(!m)return 0;var p=commParts(m,mk);return Math.round(p.perso+p.team);}
+function paidFor(id,kind,mk){return S.payouts.filter(function(p){return p.member_id===id&&p.kind===kind&&p.period===mk;}).reduce(function(s,p){return s+(p.amount||0);},0);}
+function dueComm(m,mk){if(!m)return 0;return earnedComm(m,mk)-paidFor(m.id,'commission',mk);}
+function dueSalary(m,mk){if(!m)return 0;return (m.salary||0)-paidFor(m.id,'salaire',mk);}
+function monthNav(mk,action){return '<div class="row between" style="margin-bottom:12px;background:var(--sunken);border-radius:11px;padding:6px 8px"><button class="rbtn sec" onclick="ZK.'+action+'(\''+shiftMonth(mk,-1)+'\')">‹</button><div class="semi" style="text-transform:capitalize">'+monthLabel(mk)+'</div><button class="rbtn sec" '+(mk>=curMonth()?'disabled':'')+' onclick="ZK.'+action+'(\''+shiftMonth(mk,1)+'\')">›</button></div>';}
 function payoutsOf(id){return S.payouts.filter(function(p){return p.member_id===id;});}
 function pendingReq(id,kind){return S.payout_requests.filter(function(r){return r.member_id===id&&r.status==='en_attente'&&(!kind||r.kind===kind);});}
 /* Cartes de rémunération de l'utilisateur connecté (commission à percevoir, salaire, historique) */
 function remunCards(){
-  var m=S.me,due=commDue(m),parts=commParts(m),pend=pendingReq(m.id,'commission').length,h='';
+  var m=S.me,mk=curMonth(),earned=earnedComm(m,mk),paid=paidFor(m.id,'commission',mk),due=Math.max(0,earned-paid),parts=commParts(m,mk),pend=pendingReq(m.id,'commission').length,h='';
   var brk=(m.role==='responsable')?'<div class="cap mut">Perso '+money(Math.round(parts.perso))+' + prime équipe '+money(Math.round(parts.team))+' ('+Math.round(parts.rate*100)+' %)</div>':'';
-  h+='<div class="card"><div class="row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">💵</div><div><div class="semi">Ma commission à percevoir</div><div class="cap">depuis le dernier versement</div></div></div><div class="h2" style="color:var(--success)">'+money(due)+'</div></div>'+brk
+  h+='<div class="card"><div class="row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--goldS)">💵</div><div><div class="semi">Ma commission — '+monthLabel(mk)+'</div><div class="cap">gagnée '+money(earned)+(paid>0?' • déjà versé '+money(paid):'')+'</div></div></div><div class="h2" style="color:var(--success)">'+money(due)+'</div></div>'+brk
     +(pend?'<div class="cap mut">⏳ Demande de versement en attente</div>':'<button class="sec full mut" '+(due<=0?'disabled':'')+' onclick="ZK.requestPayout(\'commission\','+due+')">Demander le versement</button>')+'</div>';
-  if((m.salary||0)>0){var ps=pendingReq(m.id,'salaire').length;h+='<div class="card"><div class="row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--infoS)">🗓️</div><div><div class="semi">Mon salaire mensuel</div><div class="cap">fixé par la direction</div></div></div><div class="h2">'+money(m.salary)+'</div></div>'+(ps?'<div class="cap mut">⏳ Demande en attente</div>':'<button class="sec full mut" onclick="ZK.requestPayout(\'salaire\','+m.salary+')">Demander mon salaire</button>')+'</div>';}
+  if((m.salary||0)>0){var paidS=paidFor(m.id,'salaire',mk),dueS=Math.max(0,(m.salary||0)-paidS),ps=pendingReq(m.id,'salaire').length;h+='<div class="card"><div class="row between"><div class="row" style="gap:10px"><div class="ico" style="background:var(--infoS)">🗓️</div><div><div class="semi">Mon salaire — '+monthLabel(mk)+'</div><div class="cap">'+money(m.salary)+(paidS>0?' • déjà versé '+money(paidS):'')+'</div></div></div><div class="h2">'+money(dueS)+'</div></div>'+(ps?'<div class="cap mut">⏳ Demande en attente</div>':'<button class="sec full mut" '+(dueS<=0?'disabled':'')+' onclick="ZK.requestPayout(\'salaire\','+dueS+')">Demander mon salaire</button>')+'</div>';}
   var mp=payoutsOf(m.id);
-  if(mp.length)h+='<div class="card"><div class="h3" style="margin-bottom:6px">Mes versements reçus</div>'+mp.slice(0,8).map(function(p){return '<div class="lrow"><div class="grow"><div class="sm semi">'+(p.kind==='commission'?'Commission':'Salaire')+'</div><div class="cap">'+fmtDate(p.paid_at)+'</div></div><div class="semi" style="color:var(--success)">'+money(p.amount)+'</div></div>';}).join('')+'</div>';
+  if(mp.length)h+='<div class="card"><div class="h3" style="margin-bottom:6px">Mes versements reçus</div>'+mp.slice(0,8).map(function(p){return '<div class="lrow"><div class="grow"><div class="sm semi">'+(p.kind==='commission'?'Commission':'Salaire')+(p.period?' • '+monthLabel(p.period):'')+'</div><div class="cap">'+fmtDate(p.paid_at)+'</div></div><div class="semi" style="color:var(--success)">'+money(p.amount)+'</div></div>';}).join('')+'</div>';
   return h;
 }
 function grossMargin(){var m=0;S.sales.forEach(function(s){(s.sale_items||[]).forEach(function(it){var p=prodById(it.product_id);var c=p?(p.cost||0):0;m+=((it.unit_price||0)-c)*it.quantity;});});return m;}
@@ -661,19 +676,22 @@ function productStat(pid){var qty=0,rev=0;S.sales.forEach(function(s){(s.sale_it
 var EXPCATS=['Achat stock','Loyer','Salaire','Transport','Autre'];
 
 function finPaie(){
-  var pres=isPresident();var h='';
-  if(!pres)h+='<div class="cap" style="margin-bottom:8px">👑 Seul le président règle les salaires et effectue les versements. Vous consultez ici le suivi.</div>';
+  var pres=isPresident();var mk=S.payMonth||(S.payMonth=curMonth());var h='';
+  if(!pres)h+='<div class="cap" style="margin-bottom:8px">👑 Seul le président fixe les salaires et effectue les versements mensuels. Vous consultez ici le suivi.</div>';
+  h+=monthNav(mk,'setPayMonth');
   var pend=S.payout_requests.filter(function(r){return r.status==='en_attente';});
   h+='<div class="h3" style="margin-bottom:8px">Demandes de versement ('+pend.length+')</div>';
   if(!pend.length)h+='<div class="card sm center">Aucune demande en attente.</div>';
-  else h+='<div class="card">'+pend.map(function(r){var m=profById(r.member_id);var amt=r.kind==='commission'?commDue(m):((m&&m.salary)||r.amount);return '<div class="lrow wrap"><div class="grow" style="cursor:pointer" onclick="ZK.openMembre(\''+r.member_id+'\')"><div class="semi ell">'+esc(m?m.name:'?')+' ›</div><div class="cap">'+(r.kind==='commission'?'Commission':'Salaire')+' • demandé '+fmtDate(r.requested_at)+'</div></div><div class="semi">'+money(amt)+'</div>'+(pres?'<button class="rbtn" style="background:var(--successS);color:var(--success);width:auto;padding:0 12px" onclick="ZK.payMember(\''+r.member_id+'\',\''+r.kind+'\','+amt+')">Payer</button>':'')+'</div>';}).join('')+'</div>';
-  h+='<div class="h3" style="margin:14px 0 8px">Rémunérations par membre</div>';
+  else h+='<div class="card">'+pend.map(function(r){var m=profById(r.member_id);var amt=Math.max(0,r.kind==='commission'?dueComm(m,mk):dueSalary(m,mk));return '<div class="lrow wrap"><div class="grow" style="cursor:pointer" onclick="ZK.openMembre(\''+r.member_id+'\')"><div class="semi ell">'+esc(m?m.name:'?')+' ›</div><div class="cap">'+(r.kind==='commission'?'Commission':'Salaire')+' • demandé '+fmtDate(r.requested_at)+'</div></div><div class="semi">'+money(amt)+'</div>'+(pres&&amt>0?'<button class="rbtn" style="background:var(--successS);color:var(--success);width:auto;padding:0 12px" onclick="ZK.payMonth(\''+r.member_id+'\',\''+r.kind+'\')">Payer</button>':'')+'</div>';}).join('')+'</div>';
+  h+='<div class="h3" style="margin:14px 0 8px">Rémunérations — '+monthLabel(mk)+'</div>';
   var members=responsables().concat(commerciaux());
   if(!members.length)h+='<div class="card sm center">Aucun membre.</div>';
-  else h+='<div class="card">'+members.map(function(m){var due=commDue(m);return '<div class="lrow wrap"><div class="grow" style="cursor:pointer" onclick="ZK.openMembre(\''+m.id+'\')"><div class="semi ell">'+esc(m.name)+' ›</div><div class="cap">'+poste(m)+' • comm. due '+money(due)+'</div></div>'+(pres?('<span class="cap">Sal.</span><input type="number" value="'+(m.salary||0)+'" onchange="ZK.setSalary(\''+m.id+'\',this.value)" style="width:78px;padding:8px" title="Salaire mensuel"><div class="row" style="gap:6px">'+(due>0?'<button class="rbtn" style="background:var(--goldS);color:var(--warn)" title="Payer la commission" onclick="ZK.payMember(\''+m.id+'\',\'commission\','+due+')">💵</button>':'')+((m.salary||0)>0?'<button class="rbtn" style="background:var(--infoS);color:var(--info)" title="Payer le salaire" onclick="ZK.payMember(\''+m.id+'\',\'salaire\','+m.salary+')">🗓️</button>':'')+'</div>'):('<div class="semi">'+money(m.salary||0)+'</div>'))+'</div>';}).join('')+'</div>';
-  var hist=S.payouts.slice(0,25);
-  h+='<div class="h3" style="margin:14px 0 8px">Versements effectués</div>';
-  if(!hist.length)h+='<div class="card sm center">Aucun versement enregistré.</div>';
+  else h+='<div class="card">'+members.map(function(m){var earned=earnedComm(m,mk),dueC=earned-paidFor(m.id,'commission',mk),dueS=(m.salary||0)-paidFor(m.id,'salaire',mk);
+    return '<div class="lrow wrap"><div class="grow" style="cursor:pointer" onclick="ZK.openMembre(\''+m.id+'\')"><div class="semi ell">'+esc(m.name)+' ›</div><div class="cap ell">'+poste(m)+' • comm. '+money(earned)+(dueC>0?' <span style="color:var(--warn)">(reste '+money(dueC)+')</span>':(earned>0?' ✓':''))+'</div></div>'
+      +(pres?('<span class="cap">Sal.</span><input type="number" value="'+(m.salary||0)+'" onchange="ZK.setSalary(\''+m.id+'\',this.value)" style="width:74px;padding:8px" title="Salaire mensuel"><div class="row" style="gap:6px">'+(dueC>0?'<button class="rbtn" style="background:var(--goldS);color:var(--warn)" title="Payer la commission du mois" onclick="ZK.payMonth(\''+m.id+'\',\'commission\')">💵</button>':'')+(dueS>0?'<button class="rbtn" style="background:var(--infoS);color:var(--info)" title="Payer le salaire du mois" onclick="ZK.payMonth(\''+m.id+'\',\'salaire\')">🗓️</button>':'')+'</div>'):('<div class="semi">'+money(m.salary||0)+'</div>'))+'</div>';}).join('')+'</div>';
+  var hist=S.payouts.filter(function(p){return p.period===mk;});
+  h+='<div class="h3" style="margin:14px 0 8px">Versements — '+monthLabel(mk)+'</div>';
+  if(!hist.length)h+='<div class="card sm center">Aucun versement ce mois.</div>';
   else h+='<div class="card">'+hist.map(function(p){var m=profById(p.member_id);return '<div class="lrow"><div class="ico" style="background:var(--successS)">💸</div><div class="grow"><div class="sm semi">'+esc(m?m.name:'?')+' — '+(p.kind==='commission'?'Commission':'Salaire')+'</div><div class="cap">'+fmtDate(p.paid_at)+'</div></div><div class="semi" style="color:var(--success)">'+money(p.amount)+'</div></div>';}).join('')+'</div>';
   return h;
 }
@@ -691,6 +709,14 @@ function finBenef(){
   var h='<div class="hero"><div class="sm" style="color:#fff;opacity:.9">Bénéfice net (revenus − dépenses)</div><div style="font-size:32px;font-weight:800;letter-spacing:-1px">'+money(np)+'</div><div class="sm" style="color:#fff;opacity:.9;margin-top:4px">'+(np>=0?'✅ positif':'⚠ négatif')+'</div></div>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('💰','success','Revenus (ventes)',compact(totalRevenue()))+stat('💸','accent','Dépenses',compact(totalExpenses()))+'</div>';
   h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('📈','primary','Marge brute',compact(grossMargin()))+stat('🧾','info','Nb ventes',S.sales.length)+'</div>';
+  var fmk=S.finMonth||(S.finMonth=curMonth());
+  var mSales=S.sales.filter(function(s){return saleMonth(s)===fmk;}),mRev=sumT(mSales);
+  var mExp=S.expenses.filter(function(e){return monthKey(new Date(e.at))===fmk;}).reduce(function(s,e){return s+(e.amount||0);},0);
+  var fmembers=responsables().concat(commerciaux());
+  var mComm=fmembers.reduce(function(s,mm){return s+earnedComm(mm,fmk);},0),mSal=fmembers.reduce(function(s,mm){return s+(mm.salary||0);},0);
+  h+='<div class="h3" style="margin:4px 0 8px">📅 Par mois</div>'+monthNav(fmk,'setFinMonth');
+  h+='<div class="row" style="gap:10px;margin-bottom:12px">'+stat('💰','success','Revenus',compact(mRev))+stat('💸','accent','Dépenses',compact(mExp))+stat('📊','primary','Bénéfice',compact(mRev-mExp))+'</div>';
+  h+='<div class="card"><div class="lrow between"><div class="sm">Ventes du mois</div><div class="semi">'+mSales.length+'</div></div><div class="lrow between"><div class="sm">Commissions gagnées (mois)</div><div class="semi">'+money(mComm)+'</div></div><div class="lrow between"><div class="sm">Salaires du mois</div><div class="semi">'+money(mSal)+'</div></div></div>';
   var owed=sumT(S.sales.filter(isUnpaidCredit));
   if(owed>0)h+='<div class="card row between" style="cursor:pointer" onclick="ZK.go(\'creances\')"><div class="row" style="gap:10px"><div class="ico" style="background:var(--warnS)">🤝</div><div><div class="semi">Créances clients</div><div class="cap">crédits non encaissés ›</div></div></div><div class="h2" style="color:var(--warn)">'+money(owed)+'</div></div>';
   h+='<div class="cap" style="margin-bottom:6px">La <b>marge brute</b> = ventes − coût des produits vendus. Le <b>bénéfice net</b> = revenus − toutes les dépenses saisies.</div>';
@@ -773,7 +799,10 @@ window.ZK={
   setTeamComm:async function(id,c){var res=await sb.rpc('admin_set_team_comm',{p_target:id,p_rate:c});if(res.error){toastErr(res.error);return;}toast('Prime d\'équipe mise à jour');await refresh();},
   setSalary:async function(id,v){var res=await sb.rpc('admin_set_salary',{p_target:id,p_salary:parseFloat(v)||0});if(res.error){toastErr(res.error);return;}toast('Salaire mis à jour');await refresh();},
   requestPayout:async function(kind,amount){var res=await sb.rpc('request_payout',{p_kind:kind,p_amount:amount});if(res.error){toastErr(res.error);return;}toast('Demande envoyée à la direction ✅');await refresh();},
-  payMember:async function(id,kind,amount){var m=profById(id);if(!window.confirm('Payer '+(kind==='commission'?'la commission':'le salaire')+' de '+((m&&m.name)||'')+' : '+money(amount)+' ?'))return;var res=await sb.rpc('pay_member',{p_member:id,p_kind:kind,p_amount:amount,p_note:null});if(res.error){toastErr(res.error);return;}toast('Versement enregistré ✅');await refresh();},
+  payMonth:async function(id,kind){var m=profById(id),mk=S.payMonth||curMonth();var amt=kind==='commission'?dueComm(m,mk):dueSalary(m,mk);if(amt<=0){toast('Rien à verser ce mois');return;}if(!window.confirm('Verser '+(kind==='commission'?'la commission':'le salaire')+' de '+((m&&m.name)||'')+' pour '+monthLabel(mk)+' : '+money(amt)+' ?'))return;var res=await sb.rpc('pay_member_month',{p_member:id,p_kind:kind,p_period:mk});if(res.error){toastErr(res.error);return;}toast('Versement enregistré ✅');await refresh();},
+  setPayMonth:function(mk){S.payMonth=mk;render();},
+  setBulMonth:function(mk){S.bulMonth=mk;render();window.scrollTo(0,0);},
+  setFinMonth:function(mk){S.finMonth=mk;render();},
   deleteUser:async function(id,name){var m=profById(id);if(m&&m.role==='responsable'){var n=commerciauxOf(id).length;if(n){toast('Réattribuez d\'abord ses '+n+' commercial(aux) avant de supprimer ce responsable');return;}}if(!window.confirm('Supprimer définitivement le compte de '+name+' ?'))return;var r=await sb.rpc('admin_delete_user',{p_target:id});if(r.error){toast('⚠ '+(r.error.message||r.error));return;}toast('Compte supprimé');S.route='equipe';await refresh();},
   prof:function(k,v){(S.prof||(S.prof={}))[k]=v;},
   saveProfil:async function(){var f=S.prof||{};var res=await sb.rpc('update_my_profile',{p_name:(f.name!=null?f.name:S.me.name),p_emoji:null,p_phone:(f.phone!=null?f.phone:(S.me.phone||''))});if(res.error){toastErr(res.error);return;}S.prof={};var u=(await sb.auth.getUser()).data.user;var pr=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();if(pr.data)S.me=pr.data;toast('Profil enregistré ✅');await refresh();},
