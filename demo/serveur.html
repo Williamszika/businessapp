@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-09o (commission par produit + fiche produit saisie/✓) -->
+<!-- ZKA build: 2026-07-09p (messagerie : chat public + privés, fichiers/vocaux) -->
 <style>
   :root{--violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
     --bg:#F4F5FB;--surface:#fff;--alt:#F1F2F9;--sunken:#ECEEF6;--border:#E8EAF3;
@@ -80,7 +80,7 @@
 "use strict";
 var app=document.getElementById('app'),toastEl=document.getElementById('toast');
 var cfg=window.ZKA_SUPABASE||{}, sb=null;
-var S={me:null,products:[],holdings:[],profiles:[],movements:[],sales:[],expenses:[],payouts:[],payout_requests:[],stock_requests:[],route:'accueil',sel:{},cart:{},nu:{role:'commercial'},pf:{emoji:'📦'},rec:{},exp:{category:'Achat stock'},req:{},finTab:'benef'};
+var S={me:null,products:[],holdings:[],profiles:[],movements:[],sales:[],expenses:[],payouts:[],payout_requests:[],stock_requests:[],messages:[],route:'accueil',sel:{},cart:{},nu:{role:'commercial'},pf:{emoji:'📦'},rec:{},exp:{category:'Achat stock'},req:{},finTab:'benef',chatTab:'public'};
 var DAY=86400000,MO=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 var TEAM_OVERRIDE=0.02; // commission d'équipe du responsable (% des ventes de ses commerciaux)
 
@@ -151,10 +151,11 @@ async function loadAll(){
     sb.from('expenses').select('*').order('at',{ascending:false}).limit(200),
     sb.from('payouts').select('*').order('paid_at',{ascending:false}).limit(200),
     sb.from('payout_requests').select('*').order('requested_at',{ascending:false}).limit(200),
-    sb.from('stock_requests').select('*').order('requested_at',{ascending:false}).limit(200)
+    sb.from('stock_requests').select('*').order('requested_at',{ascending:false}).limit(200),
+    sb.from('messages').select('*').order('created_at',{ascending:false}).limit(400)
   ]);
   for(var i=0;i<r.length;i++)if(r[i].error&&i<5)toastErr(r[i].error);
-  S.products=r[0].data||[]; S.profiles=r[1].data||[]; S.holdings=r[2].data||[]; S.movements=r[3].data||[]; S.sales=r[4].data||[]; S.expenses=r[5].data||[]; S.payouts=r[6].data||[]; S.payout_requests=r[7].data||[]; S.stock_requests=r[8].data||[];
+  S.products=r[0].data||[]; S.profiles=r[1].data||[]; S.holdings=r[2].data||[]; S.movements=r[3].data||[]; S.sales=r[4].data||[]; S.expenses=r[5].data||[]; S.payouts=r[6].data||[]; S.payout_requests=r[7].data||[]; S.stock_requests=r[8].data||[]; S.messages=r[9].data||[];
 }
 var _rt=null;
 function subscribe(){ if(_rt)return; _rt=sb.channel('zka').on('postgres_changes',{event:'*',schema:'public'},function(){clearTimeout(subscribe._t);subscribe._t=setTimeout(refresh,350);}).subscribe(); }
@@ -191,9 +192,9 @@ function renderLogin(err){
 function renderFatal(msg){app.innerHTML='<div class="content"><div class="card"><span class="badge dg">Erreur</span><div class="sm mut">'+esc(msg)+'</div><button class="ghost full mut" onclick="ZK.logout()">Se déconnecter</button></div></div>';}
 
 function tabsFor(){
-  if(role()==='boss')return [['accueil','🏠','Accueil'],['entrepot','📦','Entrepôt'],['attribuer','📤','Attribuer'],['finances','📊','Finances'],['equipe','👥','Équipe']];
-  if(role()==='responsable')return [['accueil','🏠','Accueil'],['stock','📦','Ma réserve'],['vendre','🛒','Vendre'],['attribuer','📤','Attribuer'],['equipe','👥','Équipe']];
-  return [['accueil','🏠','Accueil'],['stock','📦','Mon stock'],['vendre','🛒','Vendre'],['ventes','🧾','Ventes']];
+  if(role()==='boss')return [['accueil','🏠','Accueil'],['entrepot','📦','Entrepôt'],['finances','📊','Finances'],['equipe','👥','Équipe'],['chat','💬','Chat']];
+  if(role()==='responsable')return [['accueil','🏠','Accueil'],['stock','📦','Réserve'],['vendre','🛒','Vendre'],['equipe','👥','Équipe'],['chat','💬','Chat']];
+  return [['accueil','🏠','Accueil'],['stock','📦','Stock'],['vendre','🛒','Vendre'],['ventes','🧾','Ventes'],['chat','💬','Chat']];
 }
 function render(){
   if(!S.me){renderLogin();return;}
@@ -216,11 +217,14 @@ function render(){
     case 'bulletin':body=viewBulletin(S.sel.bid);break;
     case 'creances':body=viewCreances();break;
     case 'demandes':body=viewDemandes();break;
+    case 'chat':body=viewChat();break;
+    case 'dm':body=viewDM(S.sel.peer);break;
     default:body=viewAccueil();
   }
   var tabs=tabsFor();
   var bar='<div class="tabbar">'+tabs.map(function(t){return '<button class="tab '+(S.route===t[0]?'on':'')+'" onclick="ZK.go(\''+t[0]+'\')"><span class="ti">'+t[1]+'</span><span>'+t[2]+'</span></button>';}).join('')+'</div>';
   app.innerHTML='<div class="content">'+body+'</div>'+bar;
+  if(S.route==='chat'||S.route==='dm'){var c=app.querySelector('.content');if(c)c.scrollTop=c.scrollHeight;}
 }
 function topRow(){return '<div class="row between" style="margin-bottom:12px"><div class="row" style="gap:10px;cursor:pointer" onclick="ZK.go(\'profil\')">'+avatar(S.me.name,42)+'<div><div class="semi ell">'+esc(S.me.name)+'</div><div class="cap">'+poste(S.me)+' ›</div></div></div><button class="ghost" style="padding:9px 12px" onclick="ZK.logout()">Quitter</button></div>';}
 function greet(){var h=new Date().getHours();return h<12?'Bonjour':h<18?'Bon après-midi':'Bonsoir';}
@@ -640,6 +644,66 @@ function viewDemandes(){
   return h;
 }
 
+/* ---------- Messagerie : chat public + messages privés ---------- */
+function roleColor(r){return r==='boss'?'#7C5CEC':r==='responsable'?'#0EA5E9':r==='commercial'?'#12B76A':'#8B90A6';}
+function byCreated(a,b){return +new Date(a.created_at)-+new Date(b.created_at);}
+function publicMsgs(){return S.messages.filter(function(m){return m.scope==='public';}).slice().sort(byCreated);}
+function dmMsgs(peer){return S.messages.filter(function(m){return m.scope==='dm'&&((m.sender_id===S.me.id&&m.recipient_id===peer)||(m.sender_id===peer&&m.recipient_id===S.me.id));}).slice().sort(byCreated);}
+function lastDmWith(peer){var a=dmMsgs(peer);return a.length?a[a.length-1]:null;}
+function msgPreview(m){if(!m)return 'Démarrer la conversation';return m.kind==='image'?'📷 Photo':m.kind==='audio'?'🎤 Message vocal':m.kind==='file'?('📎 '+(m.name||'Document')):(m.body||'');}
+function msgBubble(m,showHead){
+  var mine=m.sender_id===S.me.id,sender=profById(m.sender_id),col=roleColor(sender&&sender.role);
+  var inner;
+  if(m.kind==='image')inner='<img src="'+esc(m.url)+'" alt="photo" style="max-width:210px;max-height:260px;border-radius:10px;display:block">';
+  else if(m.kind==='audio')inner='<audio controls preload="none" src="'+esc(m.url)+'" style="max-width:230px;height:40px"></audio>';
+  else if(m.kind==='file')inner='<a href="'+esc(m.url)+'" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">📎 '+esc(m.name||'document')+'</a>';
+  else inner='<span style="white-space:pre-wrap;word-break:break-word">'+esc(m.body||'')+'</span>';
+  var t=new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  var head=(showHead&&!mine)?'<div class="cap" style="margin:0 0 2px 2px"><b style="color:'+col+'">'+esc(sender?sender.name:'?')+'</b> <span class="badge" style="background:'+col+'22;color:'+col+'">'+poste(sender)+'</span></div>':'';
+  return '<div style="display:flex;flex-direction:column;align-items:'+(mine?'flex-end':'flex-start')+';margin-bottom:9px">'+head+'<div style="max-width:80%;padding:8px 11px;border-radius:15px;'+(mine?'border-bottom-right-radius:5px;background:var(--violet);color:#fff':'border-bottom-left-radius:5px;background:var(--alt);color:var(--text);border-left:3px solid '+col)+'">'+inner+'</div><div class="cap" style="margin:2px 4px 0">'+t+'</div></div>';
+}
+function composer(scope,peer){
+  var pv=peer?"'"+peer+"'":'null',rec=!!(S._rec&&S._rec.on);
+  var h='<div style="position:sticky;bottom:0;background:var(--bg);padding-top:8px">';
+  if(rec)h+='<div class="card row between" style="margin:0"><div class="row" style="gap:8px;color:var(--danger)"><span style="font-size:18px">●</span> Enregistrement du vocal…</div><button class="rbtn" style="background:var(--danger);color:#fff;width:auto;padding:0 14px" onclick="ZK.recStop()">■ Envoyer</button></div>';
+  else{
+    h+='<div class="card" style="margin:0"><div class="row" style="gap:6px"><input id="msg_input" placeholder="Votre message…  😊" style="flex:1;min-width:0" onkeydown="if(event.key===\'Enter\'){ZK.sendMsg(\''+scope+'\','+pv+');}"><button class="rbtn" style="background:var(--violet);color:#fff;width:auto;padding:0 15px" onclick="ZK.sendMsg(\''+scope+'\','+pv+')">➤</button></div>';
+    h+='<div class="row" style="gap:8px;margin-top:8px"><button class="rbtn sec" onclick="ZK.recStart(\''+scope+'\','+pv+')" title="Message vocal">🎤</button>'
+      +'<label class="rbtn sec" style="cursor:pointer" title="Photo">📷<input type="file" accept="image/*" capture="environment" style="display:none" onchange="ZK.upload(this,\'image\',\''+scope+'\','+pv+')"></label>'
+      +'<label class="rbtn sec" style="cursor:pointer" title="Document">📎<input type="file" style="display:none" onchange="ZK.upload(this,\'file\',\''+scope+'\','+pv+')"></label><div class="grow"></div></div></div>';
+  }
+  return h+'</div>';
+}
+function viewChat(){
+  var tab=S.chatTab||'public';
+  var h='<div class="h1" style="margin-bottom:10px">Messages</div>';
+  h+='<div class="seg">'+[['public','💬 Public'],['prives','🔒 Privés']].map(function(x){return '<button class="'+(tab===x[0]?'on':'')+'" onclick="ZK.chatTab(\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div>';
+  if(tab==='prives')return h+chatPrives();
+  var msgs=publicMsgs();
+  h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px">'+[['boss','Direction'],['responsable','Responsables'],['commercial','Commerciaux']].map(function(x){return '<span class="cap"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+roleColor(x[0])+';margin-right:4px;vertical-align:middle"></span>'+x[1]+'</span>';}).join('')+'</div>';
+  if(!msgs.length)h+='<div class="card sm center">Aucun message. Écrivez le premier !</div>';
+  else h+='<div>'+msgs.map(function(m){return msgBubble(m,true);}).join('')+'</div>';
+  return h+composer('public',null);
+}
+function chatPrives(){
+  var members=S.profiles.filter(function(p){return p.id!==S.me.id;});
+  var h='<div class="cap" style="margin-bottom:8px">Touchez un membre pour discuter en privé.</div>';
+  if(!members.length)return h+'<div class="card sm center">Aucun autre membre.</div>';
+  members.sort(function(a,b){var la=lastDmWith(a.id),lb=lastDmWith(b.id);return (lb?+new Date(lb.created_at):0)-(la?+new Date(la.created_at):0);});
+  h+='<div class="card">'+members.map(function(p){var last=lastDmWith(p.id),col=roleColor(p.role);return '<div class="lrow" style="cursor:pointer" onclick="ZK.openDM(\''+p.id+'\')">'+avatar(p.name,40)+'<div class="grow" style="min-width:0"><div class="semi ell">'+esc(p.name)+' <span class="badge" style="background:'+col+'22;color:'+col+'">'+poste(p)+'</span></div><div class="cap ell">'+esc(msgPreview(last))+'</div></div>'+(last?'<div class="cap">'+new Date(last.created_at).toLocaleDateString('fr-FR')+'</div>':'')+'</div>';}).join('')+'</div>';
+  return h;
+}
+function viewDM(peer){
+  var p=profById(peer);
+  if(!p)return backBtn('chat')+'<div class="card sm center">Membre introuvable.</div>';
+  var col=roleColor(p.role),h=backBtn('chat');
+  h+='<div class="card row" style="gap:10px">'+avatar(p.name,42)+'<div class="grow"><div class="semi">'+esc(p.name)+'</div><div class="cap"><span class="badge" style="background:'+col+'22;color:'+col+'">'+poste(p)+'</span></div></div></div>';
+  var msgs=dmMsgs(peer);
+  if(!msgs.length)h+='<div class="card sm center">Démarrez la conversation avec '+esc(firstName(p.name))+'.</div>';
+  else h+='<div>'+msgs.map(function(m){return msgBubble(m,false);}).join('')+'</div>';
+  return h+composer('dm',peer);
+}
+
 /* ---------- Finances ---------- */
 function totalRevenue(){return sumT(S.sales);}
 function totalExpenses(){return S.expenses.reduce(function(s,e){return s+(e.amount||0);},0);}
@@ -799,6 +863,12 @@ window.ZK={
   openRecu:function(id){S.sel.saleId=id;S.route='recu';render();window.scrollTo(0,0);},
   openMembre:function(id){S.sel.mid=id;S.route='membre';render();window.scrollTo(0,0);},
   openBulletin:function(id){S.sel.bid=id;S.route='bulletin';render();window.scrollTo(0,0);},
+  chatTab:function(t){S.chatTab=t;render();},
+  openDM:function(id){S.sel.peer=id;S.route='dm';render();},
+  sendMsg:async function(scope,peer){var el=document.getElementById('msg_input');var body=(el&&el.value||'').trim();if(!body)return;var row={scope:scope,sender_id:S.me.id,body:body,kind:'text'};if(scope==='dm')row.recipient_id=peer;if(el){el.value='';el.disabled=true;}var r=await sb.from('messages').insert(row);if(r.error){toastErr(r.error);if(el){el.disabled=false;el.value=body;}return;}await refresh();},
+  upload:async function(inp,kind,scope,peer){var f=inp&&inp.files&&inp.files[0];if(!f)return;if(f.size>15*1024*1024){toast('Fichier trop lourd (max 15 Mo)');return;}toast('Envoi…');var path=S.me.id+'/'+Date.now()+'_'+(''+(f.name||'fichier')).replace(/[^\w.\-]/g,'_');var up=await sb.storage.from('chat').upload(path,f,{contentType:f.type||undefined});if(up.error){toastErr(up.error);return;}var url=sb.storage.from('chat').getPublicUrl(path).data.publicUrl;var row={scope:scope,sender_id:S.me.id,kind:kind,url:url,name:f.name};if(scope==='dm')row.recipient_id=peer;var r=await sb.from('messages').insert(row);if(r.error){toastErr(r.error);return;}await refresh();},
+  recStart:async function(scope,peer){if(!navigator.mediaDevices||!window.MediaRecorder){toast('Vocal non supporté sur cet appareil');return;}try{var stream=await navigator.mediaDevices.getUserMedia({audio:true});var mr=new MediaRecorder(stream);S._rec={on:true,mr:mr,chunks:[],scope:scope,peer:peer,stream:stream};mr.ondataavailable=function(e){if(e.data&&e.data.size)S._rec.chunks.push(e.data);};mr.onstop=async function(){var rc=S._rec;S._rec=null;try{stream.getTracks().forEach(function(t){t.stop();});}catch(e){}var blob=new Blob(rc.chunks,{type:(rc.chunks[0]&&rc.chunks[0].type)||'audio/webm'});if(!blob.size){render();return;}toast('Envoi du vocal…');var path=S.me.id+'/'+Date.now()+'_vocal.webm';var up=await sb.storage.from('chat').upload(path,blob,{contentType:blob.type});if(up.error){toastErr(up.error);render();return;}var url=sb.storage.from('chat').getPublicUrl(path).data.publicUrl;var row={scope:rc.scope,sender_id:S.me.id,kind:'audio',url:url,name:'Message vocal'};if(rc.scope==='dm')row.recipient_id=rc.peer;var r=await sb.from('messages').insert(row);if(r.error)toastErr(r.error);await refresh();};mr.start();render();}catch(e){toast('Micro indisponible ou refusé');S._rec=null;}},
+  recStop:function(){if(S._rec&&S._rec.mr&&S._rec.mr.state!=='inactive')S._rec.mr.stop();else{S._rec=null;render();}},
   assignTo:function(id){S.sel.holder=id;S.route='attribuer';render();window.scrollTo(0,0);},
   createUser:async function(){var f=S.nu;var b=document.getElementById('btnCreate');if(!f.email||!f.pw){toast('Email et mot de passe requis');return;}if(f.role==='commercial'&&!f.mgr){toast('Choisissez le responsable de ce commercial');return;}b.textContent='Création…';b.disabled=true;
     var r=await sb.rpc('admin_create_user',{p_email:f.email,p_password:f.pw,p_name:f.name||null,p_role:f.role||'commercial',p_mgr:f.mgr||null});
@@ -823,7 +893,7 @@ window.ZK={
 
 /* ---------- Gestes : glisser à gauche / à droite ---------- */
 function swipeBackTarget(){
-  var b={produit:role()==='boss'?'entrepot':'stock',produitNew:'entrepot',reception:'entrepot',terrain:'accueil',profil:'accueil',recu:role()==='commercial'?'ventes':'accueil',membre:'equipe',bulletin:(S.sel.bid===(S.me&&S.me.id)?'profil':(role()==='commercial'?'accueil':'membre')),creances:'accueil',demandes:'accueil'};
+  var b={produit:role()==='boss'?'entrepot':'stock',produitNew:'entrepot',reception:'entrepot',terrain:'accueil',profil:'accueil',recu:role()==='commercial'?'ventes':'accueil',membre:'equipe',bulletin:(S.sel.bid===(S.me&&S.me.id)?'profil':(role()==='commercial'?'accueil':'membre')),creances:'accueil',demandes:'accueil',dm:'chat'};
   return b[S.route]||null;
 }
 function onSwipe(dir){
