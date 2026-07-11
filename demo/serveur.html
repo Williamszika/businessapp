@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-10h (zone sûre : l'en-tête ne passe plus sous la barre d'état / l'encoche ; boutons toujours accessibles) -->
+<!-- ZKA build: 2026-07-11a (mode hors-ligne : app en cache + instantané des données + resynchro auto au retour du réseau) -->
 <style>
   /* ===== ZKA — thème « noir & or » premium (dark-first) ===== */
   :root{
@@ -80,7 +80,7 @@
 </head>
 <body>
 <script src="./config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase.min.js"></script>
 <div id="app"></div>
 <div class="toast" id="toast"></div>
 <script>
@@ -101,7 +101,7 @@ var AVC=['#E9C86A','#F5B841','#34D399','#38BDF8','#F472B6','#A78BFA','#2DD4BF','
 function avColor(k){var h=0;k=''+k;for(var i=0;i<k.length;i++)h=((h<<5)-h+k.charCodeAt(i))|0;return AVC[Math.abs(h)%AVC.length];}
 function avatar(name,size){size=size||42;var c=avColor(name);return '<div class="av" style="width:'+size+'px;height:'+size+'px;background:'+c+';font-size:'+(size*0.36)+'px">'+esc(initials(name))+'</div>';}
 function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){toastEl.classList.remove('show');},2400);}
-function toastErr(e){toast('⚠ '+((e&&e.message)||e));}
+function toastErr(e){var m=(e&&e.message)||(''+e);if(isOffline()||/fetch|network|Failed to fetch|NetworkError|ECONN|timeout/i.test(m)){toast('⚡ Hors ligne — action impossible pour l\'instant');return;}toast('⚠ '+m);}
 
 /* ---------- Modèle ---------- */
 function role(){return S.me?S.me.role:null;}
@@ -149,8 +149,16 @@ function lineChart(series,color){color=color||'#E9C86A';var W=300,H=120,pt=10,pb
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="none"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+color+'" stop-opacity="0.25"/><stop offset="1" stop-color="'+color+'" stop-opacity="0.02"/></linearGradient></defs><path d="'+ap+'" fill="url(#g)"/><path d="'+lp+'" fill="none" stroke="'+color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+last.x+'" cy="'+last.y+'" r="3.5" fill="'+color+'"/></svg>';}
 
 /* ---------- Données ---------- */
+/* ---------- Hors-ligne : instantané local + état réseau ---------- */
+function isOffline(){return S._offline===true||(typeof navigator!=='undefined'&&navigator.onLine===false);}
+function snapKey(uid){return 'zk_snap_v1_'+(uid||(S.me&&S.me.id)||'anon');}
+function saveSnapshot(){if(!S.me||!S.me.id)return;try{var cap=function(a,n){return (a&&a.length>n)?a.slice(0,n):(a||[]);};var snap={v:1,ts:Date.now(),me:S.me,products:S.products,profiles:S.profiles,holdings:S.holdings,movements:cap(S.movements,120),sales:cap(S.sales,150),expenses:cap(S.expenses,150),payouts:cap(S.payouts,150),payout_requests:S.payout_requests,stock_requests:S.stock_requests,messages:cap(S.messages,150),notifications:cap(S.notifications,60),monthly:S.monthly};localStorage.setItem(snapKey(S.me.id),JSON.stringify(snap));}catch(e){}}
+function loadSnapshot(uid){try{var s=localStorage.getItem(snapKey(uid));return s?JSON.parse(s):null;}catch(e){return null;}}
+function applySnapshot(snap){if(!snap)return;['products','profiles','holdings','movements','sales','expenses','payouts','payout_requests','stock_requests','messages','notifications','monthly'].forEach(function(k){if(snap[k])S[k]=snap[k];});S._syncTs=snap.ts||null;}
+function syncLabel(){if(!S._syncTs)return '';var d=new Date(S._syncTs),now=new Date();var sameDay=d.toDateString()===now.toDateString();return ' ('+(sameDay?"aujourd'hui ":d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})+' ')+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+')';}
+function setupNet(){if(setupNet._d)return;setupNet._d=true;S._offline=!navigator.onLine;window.addEventListener('online',function(){S._offline=false;toast('De retour en ligne — actualisation…');refresh();});window.addEventListener('offline',function(){S._offline=true;render();});}
 async function loadAll(){
-  var r=await Promise.all([
+  var q=[
     sb.from('products').select('*').order('name'),
     sb.from('profiles').select('*'),
     sb.from('holdings').select('*'),
@@ -162,11 +170,15 @@ async function loadAll(){
     sb.from('stock_requests').select('*').order('requested_at',{ascending:false}).limit(200),
     sb.from('messages').select('*').order('created_at',{ascending:false}).limit(400),
     sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(100)
-  ]);
-  for(var i=0;i<r.length;i++)if(r[i].error&&i<5)toastErr(r[i].error);
-  S.products=r[0].data||[]; S.profiles=r[1].data||[]; S.holdings=r[2].data||[]; S.movements=r[3].data||[]; S.sales=r[4].data||[]; S.expenses=r[5].data||[]; S.payouts=r[6].data||[]; S.payout_requests=r[7].data||[]; S.stock_requests=r[8].data||[]; S.messages=r[9].data||[]; S.notifications=(r[10]&&r[10].data)||[];
-  // Rapport mensuel agrégé (tout l'historique, direction uniquement)
-  if(role()==='boss'){ try{ var mr=await sb.rpc('monthly_summary'); S.monthly=(mr&&!mr.error&&mr.data)||[]; }catch(e){ S.monthly=[]; } } else { S.monthly=[]; }
+  ];
+  var r=await Promise.all(q.map(function(p){return Promise.resolve(p).then(function(x){return x;},function(e){return {error:e,data:null};});}));
+  var keys=['products','profiles','holdings','movements','sales','expenses','payouts','payout_requests','stock_requests','messages','notifications'];
+  var okCount=0;
+  for(var i=0;i<keys.length;i++){ if(r[i]&&!r[i].error){ S[keys[i]]=r[i].data||[]; okCount++; } }
+  var online=okCount>0;
+  if(online&&role()==='boss'){ try{ var mr=await sb.rpc('monthly_summary'); if(mr&&!mr.error&&mr.data)S.monthly=mr.data; }catch(e){} }
+  if(online){ S._offline=false; S._syncTs=Date.now(); saveSnapshot(); } else { S._offline=true; }
+  return online;
 }
 var _rt=null;
 function subscribe(){ if(_rt)return; _rt=sb.channel('zka').on('postgres_changes',{event:'*',schema:'public'},function(){clearTimeout(subscribe._t);subscribe._t=setTimeout(refresh,350);}).subscribe(); }
@@ -198,11 +210,17 @@ async function refresh(){ var prev=(S._maxMsgTs!=null)?S._maxMsgTs:null; var pre
 
 /* ---------- Auth ---------- */
 async function afterLogin(){
-  var u=(await sb.auth.getUser()).data.user;
-  var pr=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();
-  if(pr.error){ renderFatal(pr.error.message); return; }
-  S.me=pr.data||{id:u.id,name:u.email,role:'—'};
-  await loadAll(); S._maxMsgTs=maxMsgTs(); S._maxNotifTs=maxNotifTs(); subscribe(); S.route='accueil'; render();
+  // Identité via la session locale (fonctionne même hors-ligne)
+  var sess=null; try{ sess=(await sb.auth.getSession()).data.session; }catch(e){}
+  var u=sess&&sess.user;
+  // Affichage instantané depuis le cache de ce compte (même sans réseau)
+  var snap=u?loadSnapshot(u.id):null;
+  if(snap){ applySnapshot(snap); if(snap.me)S.me=snap.me; }
+  if(u){ try{ var pr=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle(); if(pr&&!pr.error&&pr.data)S.me=pr.data; }catch(e){} if(!S.me)S.me={id:u.id,name:(u.email||'—'),role:'—'}; }
+  if(!S.me){ renderLogin(); return; }
+  setupNet();
+  await loadAll();
+  S._maxMsgTs=maxMsgTs(); S._maxNotifTs=maxNotifTs(); subscribe(); S.route='accueil'; render();
   try{if(!localStorage.getItem('zk_swipe')){localStorage.setItem('zk_swipe','1');setTimeout(function(){toast('Astuce : glissez ◀ ▶ pour changer d\'onglet');},1000);}}catch(e){}
 }
 async function doLogin(){
@@ -260,7 +278,8 @@ function render(){
   }
   var tabs=tabsFor();
   var bar='<div class="tabbar">'+tabs.map(function(t){var u=(t[0]==='chat')?unreadTotal():0;var bd=u>0?'<span style="position:absolute;top:4px;left:calc(50% + 5px);min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--danger);color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;line-height:1">'+(u>9?'9+':u)+'</span>':'';return '<button class="tab '+(S.route===t[0]?'on':'')+'" style="position:relative" onclick="ZK.go(\''+t[0]+'\')">'+bd+'<span class="ti">'+t[1]+'</span><span>'+t[2]+'</span></button>';}).join('')+'</div>';
-  app.innerHTML='<div class="content">'+body+'</div>'+bar;
+  var offBar=isOffline()?'<div style="margin:0 0 12px;padding:8px 12px;border-radius:10px;background:var(--warnS);color:var(--warn);text-align:center;font-size:12px;font-weight:700">⚡ Hors ligne — dernières données'+syncLabel()+'</div>':'';
+  app.innerHTML='<div class="content">'+offBar+body+'</div>'+bar;
   if(S.route==='chat'||S.route==='dm'){var c=app.querySelector('.content');if(c)c.scrollTop=c.scrollHeight;}
 }
 function topRow(){var un=notifUnread();var bell='<button class="ghost" style="padding:9px 12px;position:relative" onclick="ZK.go(\'notifs\')" title="Notifications">🔔'+(un>0?'<span style="position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--danger);color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;line-height:1">'+(un>9?'9+':un)+'</span>':'')+'</button>';return '<div class="row between" style="margin-bottom:12px;gap:8px"><div class="row grow" style="gap:10px;min-width:0;cursor:pointer" onclick="ZK.go(\'profil\')">'+avatar(S.me.name,42)+'<div style="min-width:0"><div class="semi ell">'+esc(S.me.name)+'</div><div class="cap ell">'+poste(S.me)+' ›</div></div></div><div class="row" style="gap:8px;flex:none">'+bell+'<button class="ghost" style="padding:9px 12px" onclick="ZK.logout()">Quitter</button></div></div>';}
