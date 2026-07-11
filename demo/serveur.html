@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ZKA">
 <title>ZKA — Gestion de commerce</title>
-<!-- ZKA build: 2026-07-11b (messages hors-ligne : mis en file d'attente puis envoyés automatiquement au retour du réseau) -->
+<!-- ZKA build: 2026-07-11c (ventes hors-ligne : stock décrémenté localement + vente en file, envoyée et réconciliée au retour du réseau) -->
 <style>
   /* ===== ZKA — thème « noir & or » premium (dark-first) ===== */
   :root{
@@ -166,10 +166,34 @@ function newOid(){return Date.now()+'-'+(S._outSeq=(S._outSeq||0)+1);}
 function pendingMsgObj(o){return {id:'pending-'+o.oid,scope:o.scope,sender_id:S.me.id,recipient_id:o.recipient_id,kind:'text',body:o.body,reply_to:o.reply_to,created_at:new Date(o.ts).toISOString(),_pending:true};}
 function pendingFor(scope,peer){return (S._outbox||[]).filter(function(o){return o.scope===scope&&(scope!=='dm'||o.recipient_id===peer);}).map(pendingMsgObj);}
 function queueMsg(scope,peer,body,reply){outboxAdd({oid:newOid(),scope:scope,recipient_id:(scope==='dm'?peer:null),body:body,reply_to:reply||null,ts:Date.now()});}
+function makeOfflineSale(items,pay,cust){
+  for(var i=0;i<items.length;i++){ if(items[i].quantity>heldQty(S.me.id,items[i].product_id)){toast('Stock insuffisant pour cette vente');return null;} }
+  var oid=newOid(),nowISO=new Date().toISOString();
+  var saleItems=items.map(function(it){var p=prodById(it.product_id);return {product_id:it.product_id,name:(p?p.name:''),quantity:it.quantity,unit_price:(p?p.price:0),comm_pct:(p&&p.comm_pct!=null?p.comm_pct:0.05)};});
+  var total=saleItems.reduce(function(s,it){return s+it.quantity*it.unit_price;},0);
+  var sale={id:'pending-sale-'+oid,ref:'⏳ EN FILE',seller_id:S.me.id,total:total,pay:pay,customer:cust,paid_at:(pay==='crédit'?null:nowISO),created_at:nowISO,sale_items:saleItems,_pending:true};
+  saleItems.forEach(function(it){ for(var j=0;j<S.holdings.length;j++){var hh=S.holdings[j];if(hh.holder_id===S.me.id&&hh.product_id===it.product_id){hh.qty=Math.max(0,hh.qty-it.quantity);break;}} });
+  S.sales.unshift(sale);
+  outboxAdd({oid:oid,kind:'sale',items:items,pay:pay,customer:cust,total:total,ts:Date.now()});
+  saveSnapshot();
+  return sale;
+}
 async function flushOutbox(){
   if(isOffline()||!S._outbox||!S._outbox.length||!S.me)return;
   var q=S._outbox.slice();
-  for(var i=0;i<q.length;i++){var o=q[i];var row={scope:o.scope,sender_id:S.me.id,body:o.body,kind:'text'};if(o.scope==='dm')row.recipient_id=o.recipient_id;if(o.reply_to)row.reply_to=o.reply_to;var r;try{r=await sb.from('messages').insert(row);}catch(e){r={error:e};}if(r&&r.error){if(isOffline()||/fetch|network|Failed|NetworkError/i.test(r.error.message||''))return;/* erreur non-réseau : on retire pour éviter une boucle */}S._outbox=(S._outbox||[]).filter(function(x){return x.oid!==o.oid;});outboxSave();}
+  for(var i=0;i<q.length;i++){var o=q[i];var r=null,failMsg=null;
+    try{
+      if(o.kind==='sale'){ r=await sb.rpc('record_sale',{p_items:o.items,p_pay:o.pay,p_customer:o.customer||null}); }
+      else { var row={scope:o.scope,sender_id:S.me.id,body:o.body,kind:'text'};if(o.scope==='dm')row.recipient_id=o.recipient_id;if(o.reply_to)row.reply_to=o.reply_to; r=await sb.from('messages').insert(row); }
+    }catch(e){ r={error:e}; }
+    if(r&&r.error){
+      var msg=r.error.message||'';
+      if(isOffline()||/fetch|network|Failed|NetworkError/i.test(msg))return; // réseau : on garde et on réessaiera
+      if(o.kind==='sale')failMsg='⚠ Une vente n\'a pas pu être enregistrée'+(o.customer?' ('+o.customer+')':'')+' — '+money(o.total||0)+'. À refaire. Motif : '+msg;
+    }
+    S._outbox=(S._outbox||[]).filter(function(x){return x.oid!==o.oid;});outboxSave();
+    if(failMsg)toast(failMsg);
+  }
 }
 async function loadAll(){
   var q=[
@@ -294,7 +318,7 @@ function render(){
   var tabs=tabsFor();
   var bar='<div class="tabbar">'+tabs.map(function(t){var u=(t[0]==='chat')?unreadTotal():0;var bd=u>0?'<span style="position:absolute;top:4px;left:calc(50% + 5px);min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--danger);color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;line-height:1">'+(u>9?'9+':u)+'</span>':'';return '<button class="tab '+(S.route===t[0]?'on':'')+'" style="position:relative" onclick="ZK.go(\''+t[0]+'\')">'+bd+'<span class="ti">'+t[1]+'</span><span>'+t[2]+'</span></button>';}).join('')+'</div>';
   var _pend=(S._outbox||[]).length;
-  var offBar=isOffline()?'<div style="margin:0 0 12px;padding:8px 12px;border-radius:10px;background:var(--warnS);color:var(--warn);text-align:center;font-size:12px;font-weight:700">⚡ Hors ligne — dernières données'+syncLabel()+(_pend?' · '+_pend+' message(s) à envoyer':'')+'</div>':(_pend?'<div style="margin:0 0 12px;padding:8px 12px;border-radius:10px;background:var(--goldS);color:var(--gold);text-align:center;font-size:12px;font-weight:700">⏳ Envoi de '+_pend+' message(s) en attente…</div>':'');
+  var offBar=isOffline()?'<div style="margin:0 0 12px;padding:8px 12px;border-radius:10px;background:var(--warnS);color:var(--warn);text-align:center;font-size:12px;font-weight:700">⚡ Hors ligne — dernières données'+syncLabel()+(_pend?' · '+_pend+' en attente d\'envoi':'')+'</div>':(_pend?'<div style="margin:0 0 12px;padding:8px 12px;border-radius:10px;background:var(--goldS);color:var(--gold);text-align:center;font-size:12px;font-weight:700">⏳ Envoi de '+_pend+' élément(s) en attente…</div>':'');
   app.innerHTML='<div class="content">'+offBar+body+'</div>'+bar;
   if(S.route==='chat'||S.route==='dm'){var c=app.querySelector('.content');if(c)c.scrollTop=c.scrollHeight;}
 }
@@ -664,6 +688,7 @@ function viewRecu(id){
   if(!s)return backBtn(backRoute)+'<div class="card sm center">Reçu introuvable.</div>';
   var seller=profById(s.seller_id),d=new Date(s.created_at);
   var h=backBtn(backRoute);
+  if(s._pending)h+='<div style="margin:0 0 12px;padding:9px 12px;border-radius:10px;background:var(--goldS);color:var(--gold);text-align:center;font-size:12px;font-weight:700">⏳ Vente en file — sera envoyée au retour du réseau</div>';
   h+='<div class="card" style="padding:0;overflow:hidden">';
   h+='<div style="background:linear-gradient(135deg,#241d0d,#0e0d0b);color:#fff;padding:18px;text-align:center;border-bottom:1px solid #38301A"><div style="font-size:22px;font-weight:800;letter-spacing:2px;color:var(--gold)">ZKA</div><div class="cap" style="color:#fff;opacity:.85">REÇU DE VENTE</div><div style="font-size:22px;font-weight:800;margin-top:8px;color:var(--gold)">'+money(s.total)+'</div><div class="cap" style="color:#fff;opacity:.85">N° '+esc(s.ref||'')+'</div></div>';
   h+='<div style="padding:16px">';
@@ -676,7 +701,7 @@ function viewRecu(id){
   h+='<div style="border-top:1px dashed var(--border);margin:12px 0"></div><div class="lrow between"><span class="bold">TOTAL</span><span class="bold" style="font-size:18px">'+money(s.total)+'</span></div>';
   h+='<div class="center cap mut">Merci de votre achat ! 🙏</div></div></div>';
   if(s.pay==='crédit'){
-    var canSettle=role()==='boss'||s.seller_id===S.me.id||(role()==='responsable'&&(profById(s.seller_id)||{}).mgr===S.me.id);
+    var canSettle=(role()==='boss'||s.seller_id===S.me.id||(role()==='responsable'&&(profById(s.seller_id)||{}).mgr===S.me.id))&&!s._pending;
     if(isUnpaidCredit(s))h+='<div class="card" style="border-color:var(--warn)"><div class="row" style="gap:10px;margin-bottom:'+(canSettle?'8px':'0')+'"><div class="ico" style="background:var(--warnS)">🤝</div><div class="grow"><div class="semi">Vente à crédit — non payée</div><div class="cap">'+money(s.total)+' dû par '+esc(s.customer||'le client')+'</div></div></div>'+(canSettle?'<button class="full" onclick="ZK.settle(\''+s.id+'\')">✅ Marquer comme payé</button>':'')+'</div>';
     else h+='<div class="card sm center" style="color:var(--success)">✅ Crédit encaissé'+(s.paid_at?' le '+fmtDate(s.paid_at):'')+'</div>';
   }
@@ -1069,7 +1094,11 @@ window.ZK={
     var r=await sb.from('expenses').insert({label:label,amount:amount,category:f.category||'Autre'});if(r.error){toastErr(r.error);return;}
     S.exp={category:'Achat stock'};toast('Dépense ajoutée ✅');await refresh();},
   delExpense:async function(id){var r=await sb.from('expenses').delete().eq('id',id);if(r.error){toastErr(r.error);return;}toast('Dépense supprimée');await refresh();},
-  sell:async function(){var items=[],disp=[];Object.keys(S.cart).forEach(function(id){if(S.cart[id]>0){items.push({product_id:id,quantity:S.cart[id]});var p=prodById(id);disp.push((p?p.name:'?')+' ×'+S.cart[id]);}});if(!items.length){toast('Ajoutez un produit');return;}var total=items.reduce(function(s,it){var p=prodById(it.product_id);return s+(p?p.price:0)*it.quantity;},0);if(!window.confirm('Valider la vente ?\n'+disp.join(', ')+'\nTotal : '+money(total)+' ('+(S.sel.pay||'espèces')+(S.sel.cust?' — '+S.sel.cust:'')+')'))return;var r=await sb.rpc('record_sale',{p_items:items,p_pay:S.sel.pay||'espèces',p_customer:S.sel.cust||null});if(r.error){toastErr(r.error);return;}S.cart={};S.sel.cust='';await refresh();S.sel.saleId=r.data;S.route='recu';render();toast('Vente enregistrée ✅');},
+  sell:async function(){var items=[],disp=[];Object.keys(S.cart).forEach(function(id){if(S.cart[id]>0){items.push({product_id:id,quantity:S.cart[id]});var p=prodById(id);disp.push((p?p.name:'?')+' ×'+S.cart[id]);}});if(!items.length){toast('Ajoutez un produit');return;}var total=items.reduce(function(s,it){var p=prodById(it.product_id);return s+(p?p.price:0)*it.quantity;},0);var pay=S.sel.pay||'espèces',cust=S.sel.cust||null;if(!window.confirm('Valider la vente ?\n'+disp.join(', ')+'\nTotal : '+money(total)+' ('+pay+(cust?' — '+cust:'')+')'))return;
+    if(isOffline()){var so=makeOfflineSale(items,pay,cust);if(!so)return;S.cart={};S.sel.cust='';S.sel.saleId=so.id;S.route='recu';render();toast('⏳ Vente en file — envoyée au retour du réseau');return;}
+    var r;try{r=await sb.rpc('record_sale',{p_items:items,p_pay:pay,p_customer:cust});}catch(e){r={error:e};}
+    if(r&&r.error){if(isOffline()||/fetch|network|Failed|NetworkError/i.test(r.error.message||'')){var s2=makeOfflineSale(items,pay,cust);if(!s2)return;S.cart={};S.sel.cust='';S.sel.saleId=s2.id;S.route='recu';render();toast('⏳ Vente en file — envoyée au retour du réseau');return;}toastErr(r.error);return;}
+    S.cart={};S.sel.cust='';await refresh();S.sel.saleId=r.data;S.route='recu';render();toast('Vente enregistrée ✅');},
   openRecu:function(id){S.sel.saleId=id;S.route='recu';render();window.scrollTo(0,0);},
   openMembre:function(id){S.sel.mid=id;S.route='membre';render();window.scrollTo(0,0);},
   openBulletin:function(id){S.sel.bid=id;S.bulMonth=curMonth();S.route='bulletin';render();window.scrollTo(0,0);},
