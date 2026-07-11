@@ -1,4 +1,20 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5A4BE0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ZKA">
+<meta name="description" content="ZKA — gestion de commerce : ventes, stock par produit, équipe et messagerie.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
 <title>ZKA — Application interactive</title>
+</head>
+<body>
 <style>
   :root{
     --violet:#5A4BE0;--violet2:#7C5CEC;--violet3:#8B5CF6;--gold:#F5A623;
@@ -214,13 +230,13 @@ function seedAccounts(){return [
  {id:'boss-karim',role:'boss',name:'Karim Touré',login:'karim',pin:'1234',own:15,emoji:'🧔🏾',status:'actif'},
  {id:'boss-lea',role:'boss',name:'Léa Mendy',login:'lea',pin:'1234',own:12,emoji:'👩🏽‍💼',status:'actif'},
  {id:'boss-omar',role:'boss',name:'Omar Baldé',login:'omar',pin:'1234',own:8,emoji:'🧑🏿‍💼',status:'actif'},
- {id:'resp-marie',role:'responsable',name:"Marie N'Guessan",login:'marie',pin:'1234',emoji:'👩🏾‍🔧',status:'actif',phone:'+225 05 98 76 54'},
- {id:'resp-jean',role:'responsable',name:'Jean-Luc Kaboré',login:'jean',pin:'1234',emoji:'🧑🏾‍💼',status:'actif',phone:'+226 70 11 22 33'},
- {id:'com-awa',role:'commercial',name:'Awa Traoré',login:'awa',pin:'1234',mgr:'resp-marie',emoji:'👩🏾‍💼',status:'actif',comm:0.04,phone:'+225 07 12 34 56',carried:42},
- {id:'com-fatou',role:'commercial',name:'Fatou Diop',login:'fatou',pin:'1234',mgr:'resp-marie',emoji:'👩🏾‍💻',status:'actif',comm:0.03,phone:'+221 77 44 55 66',carried:9},
- {id:'com-nina',role:'commercial',name:'Nina Bakayoko',login:'nina',pin:'1234',mgr:'resp-marie',emoji:'👩🏽‍💻',status:'actif',comm:0.04,phone:'+225 01 22 33 44',carried:4},
- {id:'com-koffi',role:'commercial',name:'Koffi Mensah',login:'koffi',pin:'1234',mgr:'resp-jean',emoji:'🧑🏿‍🏭',status:'actif',comm:0.03,phone:'+233 24 77 88 99',carried:12},
- {id:'com-ibrahim',role:'commercial',name:'Ibrahim Sow',login:'ibrahim',pin:'1234',mgr:'resp-jean',emoji:'🧑🏾‍✈️',status:'bloque',comm:0.02,phone:'+223 66 33 22 11',carried:3}
+ {id:'resp-marie',role:'responsable',name:"Marie N'Guessan",login:'marie',pin:'1234',emoji:'👩🏾‍🔧',status:'actif',phone:'+225 05 98 76 54',holdings:{'p-coca':40,'p-eau':25,'p-savon':18,'p-bisc':30,'p-tshirt':12,'p-cafe':10,'p-cable':8,'p-ecout':4,'p-lait':6}},
+ {id:'resp-jean',role:'responsable',name:'Jean-Luc Kaboré',login:'jean',pin:'1234',emoji:'🧑🏾‍💼',status:'actif',phone:'+226 70 11 22 33',holdings:{'p-coca':22,'p-eau':14,'p-cafe':9,'p-savon':11,'p-huile':6,'p-casq':4,'p-bisc':16}},
+ {id:'com-awa',role:'commercial',name:'Awa Traoré',login:'awa',pin:'1234',mgr:'resp-marie',emoji:'👩🏾‍💼',status:'actif',comm:0.04,phone:'+225 07 12 34 56',holdings:{'p-coca':14,'p-bisc':10,'p-eau':8,'p-savon':5,'p-tshirt':3,'p-cable':2}},
+ {id:'com-fatou',role:'commercial',name:'Fatou Diop',login:'fatou',pin:'1234',mgr:'resp-marie',emoji:'👩🏾‍💻',status:'actif',comm:0.03,phone:'+221 77 44 55 66',holdings:{'p-coca':4,'p-eau':3,'p-savon':2}},
+ {id:'com-nina',role:'commercial',name:'Nina Bakayoko',login:'nina',pin:'1234',mgr:'resp-marie',emoji:'👩🏽‍💻',status:'actif',comm:0.04,phone:'+225 01 22 33 44',holdings:{'p-coca':2,'p-bisc':2}},
+ {id:'com-koffi',role:'commercial',name:'Koffi Mensah',login:'koffi',pin:'1234',mgr:'resp-jean',emoji:'🧑🏿‍🏭',status:'actif',comm:0.03,phone:'+233 24 77 88 99',holdings:{'p-coca':5,'p-eau':3,'p-cafe':2,'p-savon':2}},
+ {id:'com-ibrahim',role:'commercial',name:'Ibrahim Sow',login:'ibrahim',pin:'1234',mgr:'resp-jean',emoji:'🧑🏾‍✈️',status:'bloque',comm:0.02,phone:'+223 66 33 22 11',holdings:{'p-coca':2,'p-savon':1}}
 ];}
 function seedProducts(){return [
  {id:'p-coca',name:'Coca-Cola 33cl',sku:'BOI-001',cat:'Boissons',price:500,cost:300,stock:124,reorder:40,unit:'pièce',emoji:'🥤'},
@@ -256,9 +272,10 @@ function seedMsgs(){var t=Date.now();function m(c,s,x,min,rd){return {id:'m'+Mat
 var S;
 function freshState(){var prods=seedProducts();return {user:null,route:{name:'accueil'},prev:[],
  settings:{currency:'XOF',businessName:'ZKA'},
- accounts:seedAccounts(),products:prods,sales:genSales(45,prods),conversations:seedConvs(),messages:seedMsgs(),
- range:'30j',salesPeriod:'7j',stockCat:'Tous',stockQ:'',venteQ:'',equipeQ:'',msgQ:'',
+ accounts:seedAccounts(),products:prods,sales:genSales(45,prods),conversations:seedConvs(),messages:seedMsgs(),movements:[],
+ range:'30j',salesPeriod:'7j',stockCat:'Tous',stockQ:'',venteQ:'',equipeQ:'',msgQ:'',stockTab:'moi',
  cart:{},vPay:'espèces',vCust:'',venteFormQ:'',draft:'',
+ assign:{holderId:null,q:'',cat:'Tous',step:1},
  loginId:'',loginPin:'',loginErr:'',showDemo:false,_f:{},aform:{role:'commercial',mgr:'resp-marie'}};}
 S=freshState();
 function theme(){var r=document.documentElement.getAttribute('data-theme');if(r)return r;return window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}
@@ -276,11 +293,39 @@ function role(){return S.user.role;}
 function isSuper(){return !!S.user.sup;}
 function salesOf(id){return S.sales.filter(function(s){return s.sellerId===id;});}
 function salesOfResp(rid){var ids={};commercialsOf(rid).forEach(function(c){ids[c.id]=1;});return S.sales.filter(function(s){return ids[s.sellerId];});}
-/* Stock terrain (unités détenues par chaque commercial) */
-var COM_LOW=5,RESP_LOW=20;
-function carriedOf(c){return c.carried||0;}
+/* Stock terrain — détenu par produit (holdings) pour responsables et commerciaux */
+var COM_LOW=5,RESP_LOW=20,ITEM_LOW=3;
+function holdingsOf(a){if(a&&!a.holdings)a.holdings={};return a?a.holdings:{};}
+function heldQty(a,pid){var h=holdingsOf(a);return h[pid]||0;}
+function carriedOf(a){var h=holdingsOf(a),t=0;for(var k in h)t+=h[k]||0;return t;}
+function holdingList(a){var h=holdingsOf(a),out=[];for(var k in h){if(h[k]>0){var p=prodById(k);if(p)out.push({p:p,qty:h[k]});}}return out.sort(function(x,y){var xl=x.qty<=ITEM_LOW?0:1,yl=y.qty<=ITEM_LOW?0:1;return xl!==yl?xl-yl:x.p.name.localeCompare(y.p.name);});}
+function holdingValue(a){return holdingList(a).reduce(function(s,x){return s+x.qty*x.p.price;},0);}
+function holdingRefs(a){return holdingList(a).length;}
+function holdingLows(a){return holdingList(a).filter(function(x){return x.qty<=ITEM_LOW;}).length;}
 function respStock(rid){return commercialsOf(rid).reduce(function(s,c){return s+carriedOf(c);},0);}
-function totalFieldStock(){return commerciaux().reduce(function(s,c){return s+carriedOf(c);},0);}
+function totalFieldStock(){var all=responsables().concat(commerciaux());return all.reduce(function(s,a){return s+carriedOf(a);},0);}
+/* Quantité d'un produit détenue par l'ensemble du terrain (tous responsables + commerciaux). */
+function fieldQtyOf(pid){var all=responsables().concat(commerciaux()),t=0;all.forEach(function(a){t+=heldQty(a,pid);});return t;}
+/* Journal des mouvements de stock (attributions / retraits). */
+function logMove(holderId,pid,qty){S.movements.unshift({id:'mv'+Date.now()+'-'+pid,at:new Date().toISOString(),byId:S.user.id,holderId:holderId,pid:pid,qty:qty});if(S.movements.length>80)S.movements.length=80;}
+/* Déplace `qty` unités du produit `pid` : source→destinataire (qty>0) ou destinataire→source (qty<0).
+   La source dépend du rôle : entrepôt central (boss) ou réserve personnelle (responsable).
+   Renvoie le nombre d'unités réellement déplacées. */
+function assignStock(holderId,pid,qty){var holder=acct(holderId),p=prodById(pid);if(!holder||!p||!qty||!canAssignTo(holderId))return 0;
+ holdingsOf(holder);var src=assignSource();
+ function srcGet(){return src.kind==='entrepot'?p.stock:heldQty(S.user,pid);}
+ function srcAdd(n){if(src.kind==='entrepot')p.stock=Math.max(0,p.stock+n);else{var h=holdingsOf(S.user);h[pid]=Math.max(0,(h[pid]||0)+n);if(h[pid]===0)delete h[pid];}}
+ var moved=0;
+ if(qty>0){moved=Math.min(qty,srcGet());if(moved<=0)return 0;srcAdd(-moved);holder.holdings[pid]=(holder.holdings[pid]||0)+moved;}
+ else{var take=Math.min(-qty,heldQty(holder,pid));if(take<=0)return 0;holder.holdings[pid]=(holder.holdings[pid]||0)-take;if(holder.holdings[pid]<=0)delete holder.holdings[pid];srcAdd(take);moved=-take;}
+ logMove(holderId,pid,moved);return moved;
+}
+/* Source d'attribution selon le rôle qui attribue : le boss puise dans l'entrepôt central,
+   le responsable dans sa propre réserve. Renvoie {kind,label,qty(pid)}. */
+function assignSource(){if(role()==='boss')return {kind:'entrepot',label:'Entrepôt central',qty:function(pid){var p=prodById(pid);return p?p.stock:0;}};return {kind:'reserve',label:'Ma réserve',qty:function(pid){return heldQty(S.user,pid);}};}
+/* Destinataires éligibles pour l'utilisateur qui attribue. */
+function eligibleHolders(){if(role()==='boss')return responsables().concat(commerciaux());if(role()==='responsable')return commercialsOf(S.user.id);return [];}
+function canReceiveFrom(holderId){return eligibleHolders().some(function(a){return a.id===holderId;});}
 
 /* ---------- Analytics ---------- */
 function startOfDay(d){var c=new Date(d);c.setHours(0,0,0,0);return c;}
@@ -316,7 +361,10 @@ function vbar(){return '<div style="width:1px;background:var(--border);align-sel
 
 /* ---------- Nav ---------- */
 var TABDEF={accueil:['Accueil','home'],ventes:['Ventes','cart'],produits:['Produits','cube'],equipe:['Équipe','users'],comptes:['Comptes','shield'],messages:['Messages','chat']};
-function canManageStock(){return role()==='boss'||role()==='responsable';}
+function canEditWarehouse(){return role()==='boss';}
+function canAssign(){return role()==='boss'||role()==='responsable';}
+/* Un gestionnaire peut-il attribuer du stock à ce compte ? */
+function canAssignTo(holderId){var a=acct(holderId);if(!a)return false;if(role()==='boss')return a.role==='responsable'||a.role==='commercial';if(role()==='responsable')return a.role==='commercial'&&a.mgr===S.user.id;return false;}
 function tabsFor(u){if(u.role==='commercial')return ['accueil','ventes','produits','messages'];if(u.role==='responsable')return ['accueil','equipe','produits','ventes','messages'];var t=['accueil','ventes','equipe','messages'];if(u.sup)t.splice(3,0,'comptes');return t;}
 function go(name,id){S.prev.push(S.route);S.route={name:name,id:id};S.draft='';render();scrollTop();}
 function setTab(name){S.route={name:name};S.prev=[];render();scrollTop();}
@@ -340,6 +388,8 @@ function view(){if(!S.user)return viewLogin();var r=S.route,tabs=tabsFor(S.user)
   case 'chat':return viewChat(r.id);
   case 'produit':body=viewProduit(r.id);break;
   case 'produitNew':body=viewProduitNew();break;
+  case 'assign':body=viewAssign(r.id);break;
+  case 'holdings':body=viewHoldings(r.id);break;
   case 'vente':body=viewNouvelleVente();break;
   case 'recu':body=viewRecu(r.id);break;
   case 'commercial':body=viewCommercial(r.id);break;
@@ -376,8 +426,8 @@ function dashCom(){var my=salesOf(S.user.id),today=salesToday(my),tt=sum(today),
  h+='<div class="hero mb16"><div style="opacity:.9;font-size:13px;font-weight:600">Mon chiffre ce mois</div><div style="font-size:32px;font-weight:800;letter-spacing:-1px;margin-top:2px">'+money(monthRev)+'</div><div class="row" style="gap:22px;margin-top:14px"><div><div style="opacity:.8;font-size:11px">Aujourd\'hui</div><div style="font-weight:700;font-size:16px">'+compact(tt)+'</div></div>'+vbar()+'<div><div style="opacity:.8;font-size:11px">Ma commission (30j)</div><div style="font-weight:700;font-size:16px">'+compact(comm)+'</div></div></div></div>';
  h+='<button class="btn btn-primary full mb16" onclick="ZKA.newSale()">'+svg('plus',20,'#fff')+' Enregistrer une vente</button>';
  h+='<div class="row gap12 mb12">'+statCard('cart','primary','Mes ventes (30j)',c30)+statCard('tag','info','Panier moyen',compact(avg))+'</div><div class="row gap12 mb16">'+statCard('wallet','success','Mon chiffre (30j)',compact(rev30))+statCard('gift','accent','Ma commission',compact(comm))+'</div>';
- var myc=carriedOf(S.user),clow=myc<=COM_LOW;
- h+='<div class="card p14 mb16" style="'+(clow?'background:var(--dangerS);border-color:transparent':'')+'"><div class="row between"><div class="row gap12">'+svg('cube',22,clow?'var(--danger)':'var(--violet)')+'<div><div class="semi" style="'+(clow?'color:var(--danger)':'')+'">Mon stock terrain</div><div class="cap" style="'+(clow?'color:var(--danger)':'')+'">'+(clow?'⚠ Stock faible — demandez un réapprovisionnement':'Unités qu\'il me reste à vendre')+'</div></div></div><div class="h1" style="'+(clow?'color:var(--danger)':'')+'">'+myc+'</div></div></div>';
+ var myc=carriedOf(S.user),clow=myc<=COM_LOW,myrefs=holdingRefs(S.user);
+ h+='<div class="card p14 mb16" style="'+(clow?'background:var(--dangerS);border-color:transparent':'')+'" onclick="ZKA.go(\'holdings\')"><div class="row between"><div class="row gap12">'+svg('cube',22,clow?'var(--danger)':'var(--violet)')+'<div><div class="semi" style="'+(clow?'color:var(--danger)':'')+'">Mon stock terrain</div><div class="cap" style="'+(clow?'color:var(--danger)':'')+'">'+(clow?'⚠ Stock faible — demandez un réappro':myrefs+' produit(s) • voir le détail')+'</div></div></div><div class="row gap8" style="align-items:center"><div class="h1" style="'+(clow?'color:var(--danger)':'')+'">'+myc+'</div>'+svg('back',16,'var(--faint)')+'</div></div></div>';
  h+='<div class="card p14 mb16"><div class="seg mb12">'+['7j','30j','6m'].map(function(r){return '<button class="'+(S.range===r?'on':'')+'" onclick="ZKA.setRange(\''+r+'\')">'+(r==='7j'?'7 jours':r==='30j'?'30 jours':'6 mois')+'</button>';}).join('')+'</div><div class="h3">'+compact(series.reduce(function(s,d){return s+d.v;},0))+'</div><div class="cap mb12">Total sur la période</div>'+lineChart(series,'#5A4BE0')+'</div>';
  h+='<div class="row between mb12"><div class="h3">Mes ventes récentes</div><button class="sm semi" style="color:var(--violet)" onclick="ZKA.setTab(\'ventes\')">Tout voir</button></div>';
  h+=my.length?('<div class="list">'+my.slice(0,5).map(saleRow).join('')+'</div>'):'<div class="card p14 center sec">Aucune vente. Commencez !</div>';
@@ -391,8 +441,11 @@ function dashResp(){var team=commercialsOf(S.user.id),ts=salesOfResp(S.user.id),
  var h=topHeader()+'<div class="pad" style="padding-top:0">';
  h+='<div class="hero mb16"><div style="opacity:.9;font-size:13px;font-weight:600">Chiffre de mon équipe ce mois</div><div style="font-size:30px;font-weight:800;letter-spacing:-1px;margin-top:2px">'+money(monthRev)+'</div><div class="row" style="gap:22px;margin-top:14px"><div><div style="opacity:.8;font-size:11px">Aujourd\'hui</div><div style="font-weight:700;font-size:16px">'+compact(sum(today))+'</div></div>'+vbar()+'<div><div style="opacity:.8;font-size:11px">Mes commerciaux</div><div style="font-weight:700;font-size:16px">'+team.length+'</div></div></div></div>';
  h+='<div class="row gap12 mb16">'+statCard('cart','primary','Ventes équipe (30j)',inLast(ts,30).length)+statCard('wallet','success','Chiffre (30j)',compact(rev30))+'</div>';
+ var myres=carriedOf(S.user),myrefs=holdingRefs(S.user);
+ h+='<div class="card p14 mb12" onclick="ZKA.go(\'holdings\')"><div class="row between"><div class="row gap12">'+svg('cube',22,'var(--violet)')+'<div><div class="semi">Ma réserve</div><div class="cap">'+myrefs+' produit(s) à répartir</div></div></div><div class="row gap8" style="align-items:center"><div class="h2">'+myres+' u.</div>'+svg('back',16,'var(--faint)')+'</div></div></div>';
+ h+='<button class="btn btn-primary full mb16" onclick="ZKA.go(\'assign\')">'+svg('cube',18,'#fff')+' Attribuer du stock à un commercial</button>';
  var tstock=respStock(S.user.id),rlow=tstock<=RESP_LOW;
- h+='<div class="card p14 mb16" style="'+(rlow?'background:var(--dangerS);border-color:transparent':'')+'"><div class="row between mb12"><div class="row gap12">'+svg('cube',22,rlow?'var(--danger)':'var(--violet)')+'<div><div class="semi" style="'+(rlow?'color:var(--danger)':'')+'">Stock terrain de l\'équipe</div><div class="cap" style="'+(rlow?'color:var(--danger)':'')+'">'+(rlow?'⚠ Stock global faible (≤ '+RESP_LOW+')':'Total des unités détenues')+'</div></div></div><div class="h1" style="'+(rlow?'color:var(--danger)':'')+'">'+tstock+'</div></div>'+team.map(function(c){var cc=carriedOf(c),low=cc<=COM_LOW;return '<div class="row between" style="padding:8px 0;border-top:1px solid var(--border)"><div class="row gap8">'+avatar(c.name,c.emoji,30)+'<div class="sm semi" style="color:var(--text)">'+esc(c.name.split(' ')[0])+'</div>'+(low?tbadge('faible','danger'):'')+'</div><div class="row gap8"><div class="semi" style="'+(low?'color:var(--danger)':'')+'">'+cc+' u.</div><button class="back" style="width:30px;height:30px;background:var(--successS)" onclick="ZKA.replenish(\''+c.id+'\',10)">'+svg('plus',15,'var(--success)')+'</button></div></div>';}).join('')+'</div>';
+ h+='<div class="card p14 mb16" style="'+(rlow?'background:var(--dangerS);border-color:transparent':'')+'"><div class="row between mb12"><div class="row gap12">'+svg('cube',22,rlow?'var(--danger)':'var(--violet)')+'<div><div class="semi" style="'+(rlow?'color:var(--danger)':'')+'">Stock détenu par l\'équipe</div><div class="cap" style="'+(rlow?'color:var(--danger)':'')+'">'+(rlow?'⚠ Stock global faible (≤ '+RESP_LOW+')':'Total des unités chez mes commerciaux')+'</div></div></div><div class="h1" style="'+(rlow?'color:var(--danger)':'')+'">'+tstock+'</div></div>'+team.map(function(c){var cc=carriedOf(c),low=cc<=COM_LOW;return '<div class="row between" style="padding:8px 0;border-top:1px solid var(--border)"><div class="row gap8" style="flex:1;min-width:0" onclick="ZKA.go(\'holdings\',\''+c.id+'\')">'+avatar(c.name,c.emoji,30)+'<div class="sm semi" style="color:var(--text)">'+esc(c.name.split(' ')[0])+'</div>'+(low?tbadge('faible','danger'):'')+'</div><div class="row gap8"><div class="semi" style="'+(low?'color:var(--danger)':'')+'">'+cc+' u.</div><button class="back" style="width:30px;height:30px;background:var(--successS)" onclick="ZKA.go(\'assign\',\''+c.id+'\')">'+svg('plus',15,'var(--success)')+'</button></div></div>';}).join('')+'</div>';
  h+='<div class="card p14 mb16"><div class="seg mb12">'+['7j','30j','6m'].map(function(r){return '<button class="'+(S.range===r?'on':'')+'" onclick="ZKA.setRange(\''+r+'\')">'+(r==='7j'?'7 jours':r==='30j'?'30 jours':'6 mois')+'</button>';}).join('')+'</div><div class="h3">'+compact(series.reduce(function(s,d){return s+d.v;},0))+'</div><div class="cap mb12">Chiffre de l\'équipe</div>'+lineChart(series,'#5A4BE0')+'</div>';
  if(top&&top.rev>0)h+='<div class="card p14 mb16" style="background:var(--goldS);border-color:transparent"><div class="row gap12">'+avatar(top.c.name,top.c.emoji,44)+'<div class="grow"><div class="cap" style="color:var(--warn)">🏆 MEILLEUR VENDEUR</div><div class="semi">'+esc(top.c.name)+'</div></div><div class="h3" style="color:var(--warn)">'+compact(top.rev)+'</div></div></div>';
  h+='<div class="row between mb12"><div class="h3">Classement de l\'équipe</div><button class="sm semi" style="color:var(--violet)" onclick="ZKA.setTab(\'equipe\')">Équipe</button></div><div class="card p14">'+rank.map(function(x,i){return rankRow(x,i);}).join('')+'</div>';
@@ -407,7 +460,8 @@ function dashBoss(){var all=S.sales,today=salesToday(all),ms=seriesMonthly(all,6
  h+='<div class="hero mb16"><div class="row between"><div style="opacity:.9;font-size:13px;font-weight:600">Chiffre global ce mois</div>'+tbadge(pct((S.user.own||0)/100)+' part',(0,'accent'))+'</div><div style="font-size:31px;font-weight:800;letter-spacing:-1px;margin-top:2px">'+money(monthRev)+'</div><div class="row" style="gap:20px;margin-top:14px"><div><div style="opacity:.8;font-size:11px">Aujourd\'hui</div><div style="font-weight:700;font-size:15px">'+compact(sum(today))+'</div></div>'+vbar()+'<div><div style="opacity:.8;font-size:11px">Ma part bénéfice</div><div style="font-weight:700;font-size:15px">'+compact(myShare)+'</div></div></div></div>';
  h+='<div class="row gap12 mb16">'+qa('pie','Associés','var(--gold)',"ZKA.go('associes')")+qa('cube','Stock','var(--success)',"ZKA.go('produits')")+(isSuper()?qa('shield','Comptes','var(--violet)',"ZKA.setTab('comptes')"):qa('users','Équipes','var(--info)',"ZKA.setTab('equipe')"))+'</div>';
  h+='<div class="row gap12 mb12">'+statCard('cart','primary','Ventes (30j)',inLast(all,30).length)+statCard('up','success','Bénéfice (total)',compact(profit))+'</div><div class="row gap12 mb16">'+statCard('wallet','info','Chiffre (30j)',compact(rev30))+statCard('gift','accent','Ma part',compact(myShare))+'</div>';
- h+='<div class="card p14 mb16"><div class="row between mb12"><div class="row gap12">'+svg('cube',22,'var(--violet)')+'<div class="semi">Stock terrain total</div></div><div class="h2">'+totalFieldStock()+' u.</div></div><div class="cap mb8" style="text-transform:uppercase;letter-spacing:.5px;font-weight:700">Répartition par responsable</div>'+responsables().map(function(rp){var st=respStock(rp.id),low=st<=RESP_LOW,mx=Math.max(1,totalFieldStock());return '<div class="row gap12" style="margin-top:12px" onclick="ZKA.go(\'responsable\',\''+rp.id+'\')">'+avatar(rp.name,rp.emoji,34)+'<div class="grow"><div class="row between"><div class="sm semi" style="color:var(--text)">'+esc(rp.name)+(low?' ⚠':'')+'</div><div class="sm semi" style="'+(low?'color:var(--danger)':'')+'">'+st+' u.</div></div><div class="track mt4"><div class="fill" style="width:'+(st/mx*100)+'%;background:'+(low?'var(--danger)':'var(--violet)')+'"></div></div></div></div>';}).join('')+'</div>';
+ h+='<button class="btn btn-primary full mb16" onclick="ZKA.go(\'assign\')">'+svg('cube',18,'#fff')+' Attribuer du stock à un membre</button>';
+ h+='<div class="card p14 mb16"><div class="row between mb12"><div class="row gap12">'+svg('cube',22,'var(--violet)')+'<div class="semi">Stock sur le terrain</div></div><div class="h2">'+totalFieldStock()+' u.</div></div><div class="cap mb8" style="text-transform:uppercase;letter-spacing:.5px;font-weight:700">Répartition par responsable</div>'+responsables().map(function(rp){var st=respStock(rp.id),low=st<=RESP_LOW,mx=Math.max(1,totalFieldStock());return '<div class="row gap12" style="margin-top:12px" onclick="ZKA.go(\'responsable\',\''+rp.id+'\')">'+avatar(rp.name,rp.emoji,34)+'<div class="grow"><div class="row between"><div class="sm semi" style="color:var(--text)">'+esc(rp.name)+(low?' ⚠':'')+'</div><div class="sm semi" style="'+(low?'color:var(--danger)':'')+'">'+st+' u.</div></div><div class="track mt4"><div class="fill" style="width:'+(st/mx*100)+'%;background:'+(low?'var(--danger)':'var(--violet)')+'"></div></div></div></div>';}).join('')+'</div>';
  h+='<div class="card p14 mb16"><div class="seg mb12">'+['7j','30j','6m'].map(function(r){return '<button class="'+(S.range===r?'on':'')+'" onclick="ZKA.setRange(\''+r+'\')">'+(r==='7j'?'7 jours':r==='30j'?'30 jours':'6 mois')+'</button>';}).join('')+'</div><div class="h3">'+compact(series.reduce(function(s,d){return s+d.v;},0))+'</div><div class="cap mb12">Chiffre global</div>'+lineChart(series,'#5A4BE0')+'</div>';
  h+='<div class="row between mb12"><div class="h3">Par responsable</div><button class="sm semi" style="color:var(--violet)" onclick="ZKA.setTab(\'ventes\')">Détail</button></div><div class="card p14">'+responsables().map(function(rp,i){var rs=salesOfResp(rp.id),rev=sum(rs),mx=Math.max(1,sum(salesOfResp(responsables()[0].id)));return '<div class="row gap12" '+(i?'style="margin-top:14px"':'')+' onclick="ZKA.go(\'responsable\',\''+rp.id+'\')">'+avatar(rp.name,rp.emoji,38)+'<div class="grow"><div class="row between"><div class="semi ell">'+esc(rp.name)+'</div><div class="semi" style="font-size:13px">'+compact(rev)+'</div></div><div class="track mt8"><div class="fill" style="width:'+(rev/mx*100)+'%;background:var(--violet)"></div></div><div class="cap mt4">'+commercialsOf(rp.id).length+' commerciaux • '+rs.length+' ventes</div></div></div>';}).join('')+'</div>';
  return h+'</div>';
@@ -451,14 +505,18 @@ function ventesBoss(){var all=S.sales,per=S.salesPeriod,cut=per==='tout'?0:Date.
 }
 
 /* ----- Produits (catalogue) ----- */
-function viewProduits(){var cats=['Tous'];S.products.forEach(function(p){if(cats.indexOf(p.cat)<0)cats.push(p.cat);});var q=S.stockQ.toLowerCase();
+function viewProduits(){var asTab=tabsFor(S.user).indexOf('produits')>=0;return canEditWarehouse()?viewWarehouse(asTab):viewMyStock(asTab);}
+/* Ligne de stock détenu (par produit) */
+function heldRow(p,qty){var out=qty===0,lw=qty<=ITEM_LOW;return '<div class="lrow" onclick="ZKA.go(\'produit\',\''+p.id+'\')">'+avatar(p.name,p.emoji,44)+'<div class="grow"><div class="semi ell">'+esc(p.name)+'</div><div class="cap">'+esc(p.cat)+' • '+money(p.price)+'</div></div><div style="text-align:right"><div class="semi">'+qty+' '+p.unit+'</div><div class="mt4">'+tbadge(out?'Épuisé':lw?'Faible':'En stock',out?'danger':lw?'warning':'success')+'</div></div></div>';}
+
+/* Vue entrepôt central (boss) */
+function viewWarehouse(asTab){var cats=['Tous'];S.products.forEach(function(p){if(cats.indexOf(p.cat)<0)cats.push(p.cat);});var q=S.stockQ.toLowerCase();
  var filt=S.products.filter(function(p){return S.stockCat==='Tous'||p.cat===S.stockCat;}).filter(function(p){return !q||(p.name+' '+p.sku).toLowerCase().indexOf(q)>=0;}).sort(function(a,b){var al=a.stock<=a.reorder?0:1,bl=b.stock<=b.reorder?0:1;return al!==bl?al-bl:a.name.localeCompare(b.name);});
- var canEdit=canManageStock();var low=lowStock();
- var fab=canEdit?'<button class="fab" onclick="ZKA.go(\'produitNew\')">'+svg('plus',22,'#fff')+'</button>':'';
- var asTab=tabsFor(S.user).indexOf('produits')>=0;
- var h=asTab?appHeader(canEdit?'Stock':'Catalogue',S.products.length+' produits',fab):backHeader(canEdit?'Stock':'Catalogue',fab);
- h+='<div class="pad" style="padding-top:0"><div class="card p14 row mb12">'+miniStat('Valeur',compact(stockValue()))+vbar()+miniStat('Produits',S.products.length)+vbar()+miniStat('Alertes',low.length,low.length?'var(--warn)':null)+'</div>';
- if(!canEdit)h+='<div class="row gap10 mb12" style="background:var(--infoS);border-radius:12px;padding:11px">'+svg('lock',18,'var(--info)')+'<div class="sm semi" style="color:var(--info)">Lecture seule — vous pouvez consulter et vendre, pas modifier.</div></div>';
+ var low=lowStock();
+ var fab='<button class="fab" onclick="ZKA.go(\'produitNew\')">'+svg('plus',22,'#fff')+'</button>';
+ var h=asTab?appHeader('Stock','Entrepôt central',fab):backHeader('Entrepôt central',fab);
+ h+='<div class="pad" style="padding-top:0"><div class="card p14 row mb12">'+miniStat('Valeur entrepôt',compact(stockValue()))+vbar()+miniStat('Sur le terrain',totalFieldStock()+' u.')+vbar()+miniStat('Alertes',low.length,low.length?'var(--warn)':null)+'</div>';
+ h+='<button class="btn btn-primary full mb12" onclick="ZKA.go(\'assign\')">'+svg('cube',18,'#fff')+' Attribuer du stock à un membre</button>';
  h+='<div class="chips mb8">'+cats.map(function(c){return '<button class="chip '+(S.stockCat===c?'on':'')+'" onclick="ZKA.setStockCat(\''+esc(c)+'\')">'+esc(c)+'</button>';}).join('')+'</div></div>';
  h+=searchBox('stockSearch',S.stockQ,'Rechercher un produit…');
  h+='<div class="pad" style="padding-top:0">';
@@ -466,16 +524,90 @@ function viewProduits(){var cats=['Tous'];S.products.forEach(function(p){if(cats
  else h+='<div class="list">'+filt.map(function(p){var out=p.stock===0,lw=p.stock<=p.reorder;return '<div class="lrow" onclick="ZKA.go(\'produit\',\''+p.id+'\')">'+avatar(p.name,p.emoji,44)+'<div class="grow"><div class="semi ell">'+esc(p.name)+'</div><div class="cap">'+esc(p.cat)+' • '+p.sku+'</div></div><div style="text-align:right"><div class="semi">'+money(p.price)+'</div><div class="mt4">'+tbadge(out?'Rupture':p.stock+' '+p.unit,out?'danger':lw?'warning':'neutral')+'</div></div></div>';}).join('')+'</div>';
  return h+'</div>';
 }
-function viewProduit(id){var p=prodById(id);if(!p)return backHeader('Produit')+empty('cube','Produit introuvable','');var out=p.stock===0,lw=p.stock<=p.reorder,mar=p.price-p.cost,mpct=p.price?mar/p.price:0,canEdit=canManageStock();
- var h=backHeader(p.name)+'<div class="pad" style="padding-top:0">';
- h+='<div class="card p14 center mb16" style="display:flex;flex-direction:column;align-items:center;gap:6px">'+avatar(p.name,p.emoji,80)+'<div class="h2 mt8">'+esc(p.name)+'</div><div class="sec">'+esc(p.cat)+' • '+p.sku+'</div>'+tbadge(out?'Rupture':lw?'Stock faible':'En stock',out?'danger':lw?'warning':'success',true)+'</div>';
- h+='<div class="card p14 mb16"><div class="row between"><div class="sec">Prix de vente</div><div class="h3">'+money(p.price)+'</div></div><div class="divider" style="margin:12px 0"></div>'+(canEdit?'<div class="row between"><div class="sec">Coût d\'achat</div><div class="semi">'+money(p.cost)+'</div></div><div class="divider" style="margin:12px 0"></div>':'')+'<div class="row between"><div class="sec">'+(canEdit?'Marge unitaire':'Disponible')+'</div>'+(canEdit?('<div class="row gap8">'+tbadge(pct(mpct),'success')+'<div class="semi" style="color:var(--success)">'+money(mar)+'</div></div>'):('<div class="h3">'+p.stock+' '+p.unit+'</div>'))+'</div></div>';
- h+='<div class="card p14 mb16"><div class="row between" style="align-items:flex-end"><div><div style="font-size:38px;font-weight:800;letter-spacing:-1px">'+fmtNum(p.stock)+'</div><div class="sec">'+p.unit+'(s) en stock</div></div><div style="text-align:right"><div class="cap">Valeur</div><div class="h3">'+money(p.price*p.stock)+'</div></div></div><div class="track mt12" style="height:10px"><div class="fill" style="width:'+(Math.min(1,p.stock/Math.max(1,p.reorder*2))*100)+'%;background:'+(out?'var(--danger)':lw?'var(--warn)':'var(--success)')+'"></div></div>';
- if(canEdit)h+='<div class="row between mt12" style="background:var(--alt);border-radius:12px;padding:8px"><button class="back" onclick="ZKA.adjust(\''+p.id+'\',-1)">'+svg('back',18)+'</button><div class="sm semi">Ajuster le stock</div><button class="fab" onclick="ZKA.adjust(\''+p.id+'\',1)">'+svg('plus',20,'#fff')+'</button></div><button class="btn btn-sec full mt12" onclick="ZKA.adjust(\''+p.id+'\',10)">'+svg('refresh',18)+' Réapprovisionner (+10)</button>';
+
+/* Mon stock (responsable / commercial) : ce que JE détiens + catalogue */
+function viewMyStock(asTab){var tab=S.stockTab==='catalogue'?'catalogue':'moi';var q=S.stockQ.toLowerCase();
+ var mine=holdingList(S.user),lows=holdingLows(S.user);
+ var h=asTab?appHeader('Mon stock',roleLabel(role()),''):backHeader('Mon stock','');
+ h+='<div class="pad" style="padding-top:0"><div class="card p14 row mb12">'+miniStat('Unités détenues',carriedOf(S.user))+vbar()+miniStat('Références',mine.length)+vbar()+miniStat('Valeur',compact(holdingValue(S.user)),null)+'</div>';
+ h+='<div class="seg mb12"><button class="'+(tab==='moi'?'on':'')+'" onclick="ZKA.setStockTab(\'moi\')">Ce que je détiens</button><button class="'+(tab==='catalogue'?'on':'')+'" onclick="ZKA.setStockTab(\'catalogue\')">Catalogue</button></div>';
+ if(role()==='responsable')h+='<button class="btn btn-primary full mb4" onclick="ZKA.go(\'assign\')">'+svg('cube',18,'#fff')+' Répartir à mon équipe</button>';
  h+='</div>';
- if(role()==='commercial')h+='<button class="btn btn-primary full" onclick="ZKA.newSale()">'+svg('cart',18,'#fff')+' Vendre ce produit</button>';
+ if(tab==='moi'){
+  if(lows>0)h+='<div class="pad" style="padding-top:0"><div class="row gap10" style="background:var(--warnS);border-radius:12px;padding:11px">'+svg('alert',18,'var(--warn)')+'<div class="sm semi" style="color:var(--warn)">'+lows+' produit(s) en quantité faible — pensez à demander un réapprovisionnement.</div></div></div>';
+  h+=searchBox('stockSearch',S.stockQ,'Rechercher dans mon stock…');
+  var mf=mine.filter(function(x){return !q||(x.p.name+' '+x.p.cat).toLowerCase().indexOf(q)>=0;});
+  h+='<div class="pad" style="padding-top:0">';
+  if(!mine.length)h+=empty('cube','Aucun stock attribué',role()==='responsable'?'La direction ne vous a rien attribué pour l\'instant.':'Votre responsable ne vous a pas encore attribué de stock.');
+  else if(!mf.length)h+=empty('cube','Aucun résultat','Rien ne correspond.');
+  else h+='<div class="list">'+mf.map(function(x){return heldRow(x.p,x.qty);}).join('')+'</div>';
+ }else{
+  h+=searchBox('stockSearch',S.stockQ,'Rechercher un produit…');
+  var cf=S.products.filter(function(p){return !q||(p.name+' '+p.cat).toLowerCase().indexOf(q)>=0;}).sort(function(a,b){return a.name.localeCompare(b.name);});
+  h+='<div class="pad" style="padding-top:0"><div class="row gap10 mb12" style="background:var(--infoS);border-radius:12px;padding:11px">'+svg('lock',18,'var(--info)')+'<div class="sm semi" style="color:var(--info)">Catalogue complet — vous vendez uniquement ce que vous détenez.</div></div>';
+  h+='<div class="list">'+cf.map(function(p){var mq=heldQty(S.user,p.id);return '<div class="lrow" onclick="ZKA.go(\'produit\',\''+p.id+'\')">'+avatar(p.name,p.emoji,44)+'<div class="grow"><div class="semi ell">'+esc(p.name)+'</div><div class="cap">'+esc(p.cat)+' • '+money(p.price)+'</div></div><div style="text-align:right">'+(mq>0?tbadge('J\'en ai '+mq,'success'):'<span class="cap">non détenu</span>')+'</div></div>';}).join('')+'</div>';
+ }
  return h+'</div>';
 }
+function viewProduit(id){var p=prodById(id);if(!p)return backHeader('Produit')+empty('cube','Produit introuvable','');
+ var canEdit=canEditWarehouse(),mine=heldQty(S.user,p.id);
+ var shown=canEdit?p.stock:mine,out=shown===0,lw=canEdit?(p.stock<=p.reorder):(mine<=ITEM_LOW),mar=p.price-p.cost,mpct=p.price?mar/p.price:0;
+ var stLabel=out?(canEdit?'Rupture':'Épuisé'):lw?(canEdit?'Stock faible':'Quantité faible'):'En stock';
+ var h=backHeader(p.name)+'<div class="pad" style="padding-top:0">';
+ h+='<div class="card p14 center mb16" style="display:flex;flex-direction:column;align-items:center;gap:6px">'+avatar(p.name,p.emoji,80)+'<div class="h2 mt8">'+esc(p.name)+'</div><div class="sec">'+esc(p.cat)+' • '+p.sku+'</div>'+tbadge(stLabel,out?'danger':lw?'warning':'success',true)+'</div>';
+ h+='<div class="card p14 mb16"><div class="row between"><div class="sec">Prix de vente</div><div class="h3">'+money(p.price)+'</div></div><div class="divider" style="margin:12px 0"></div>'+(canEdit?'<div class="row between"><div class="sec">Coût d\'achat</div><div class="semi">'+money(p.cost)+'</div></div><div class="divider" style="margin:12px 0"></div><div class="row between"><div class="sec">Marge unitaire</div><div class="row gap8">'+tbadge(pct(mpct),'success')+'<div class="semi" style="color:var(--success)">'+money(mar)+'</div></div></div>':'<div class="row between"><div class="sec">Je détiens</div><div class="h3">'+mine+' '+p.unit+'</div></div><div class="divider" style="margin:12px 0"></div><div class="row between"><div class="sec">Sur le terrain (tous)</div><div class="semi">'+fieldQtyOf(p.id)+' '+p.unit+'</div></div>')+'</div>';
+ var barPct=canEdit?Math.min(1,p.stock/Math.max(1,p.reorder*2)):Math.min(1,mine/Math.max(1,ITEM_LOW*3));
+ h+='<div class="card p14 mb16"><div class="row between" style="align-items:flex-end"><div><div style="font-size:38px;font-weight:800;letter-spacing:-1px">'+fmtNum(shown)+'</div><div class="sec">'+p.unit+'(s) '+(canEdit?'en entrepôt':'en ma possession')+'</div></div><div style="text-align:right"><div class="cap">Valeur</div><div class="h3">'+money(p.price*shown)+'</div></div></div><div class="track mt12" style="height:10px"><div class="fill" style="width:'+(barPct*100)+'%;background:'+(out?'var(--danger)':lw?'var(--warn)':'var(--success)')+'"></div></div>';
+ if(canEdit)h+='<div class="row between mt12" style="background:var(--alt);border-radius:12px;padding:8px"><button class="back" onclick="ZKA.adjust(\''+p.id+'\',-1)">'+svg('back',18)+'</button><div class="sm semi">Ajuster l\'entrepôt</div><button class="fab" onclick="ZKA.adjust(\''+p.id+'\',1)">'+svg('plus',20,'#fff')+'</button></div><button class="btn btn-sec full mt12" onclick="ZKA.adjust(\''+p.id+'\',10)">'+svg('refresh',18)+' Réceptionner (+10)</button>';
+ h+='</div>';
+ if(canAssign())h+='<button class="btn btn-primary full" onclick="ZKA.go(\'assign\')">'+svg('cube',18,'#fff')+' Attribuer ce produit</button>';
+ else if(role()==='commercial'){if(mine>0)h+='<button class="btn btn-primary full" onclick="ZKA.newSale()">'+svg('cart',18,'#fff')+' Vendre ce produit</button>';else h+='<div class="card p14 center sec">Vous ne détenez pas ce produit — demandez-le à votre responsable.</div>';}
+ return h+'</div>';
+}
+/* ----- Attribuer du stock (formulaire) ----- */
+function viewAssign(preId){
+ if(!canAssign())return backHeader('Attribuer du stock')+empty('lock','Accès refusé','Seuls la direction et les responsables attribuent du stock.');
+ var holders=eligibleHolders();
+ if(!holders.length)return backHeader('Attribuer du stock')+empty('users','Aucun destinataire',role()==='responsable'?'Aucun commercial n\'est rattaché à votre équipe.':'Aucun membre à approvisionner.');
+ var hid=S.assign.holderId;
+ if(preId&&canAssignTo(preId))hid=preId;
+ if(!hid||!holders.some(function(x){return x.id===hid;}))hid=holders[0].id;
+ S.assign.holderId=hid;
+ var holder=acct(hid),src=assignSource(),step=S.assign.step||1;
+ var cats=['Tous'];S.products.forEach(function(p){if(cats.indexOf(p.cat)<0)cats.push(p.cat);});
+ var q=(S.assign.q||'').toLowerCase();
+ var filt=S.products.filter(function(p){return S.assign.cat==='Tous'||p.cat===S.assign.cat;}).filter(function(p){return !q||(p.name+' '+p.cat).toLowerCase().indexOf(q)>=0;}).sort(function(a,b){return a.name.localeCompare(b.name);});
+ var h=backHeader('Attribuer du stock')+'<div class="pad" style="padding-top:0">';
+ h+='<div class="row gap10 mb12" style="background:var(--primS);border-radius:12px;padding:11px">'+svg('cube',18,'var(--violet)')+'<div class="sm semi" style="color:var(--violet)">Source : '+src.label+'. Choisissez un destinataire, puis ajustez chaque type de produit (+ pour attribuer, − pour reprendre).</div></div>';
+ h+='<div class="sm semi mb8">Destinataire</div><div class="chips mb12">'+holders.map(function(a){return '<button class="chip '+(a.id===hid?'on':'')+'" onclick="ZKA.setAssignHolder(\''+a.id+'\')">'+esc(a.name.split(' ')[0])+' <span style="opacity:.65;font-size:10px">'+(a.role==='responsable'?'resp.':'com.')+'</span></button>';}).join('')+'</div>';
+ h+='<div class="card p14 row mb12" onclick="ZKA.go(\'holdings\',\''+hid+'\')">'+avatar(holder.name,holder.emoji,40)+'<div class="grow" style="margin-left:10px"><div class="semi ell">'+esc(holder.name)+'</div><div class="cap">'+roleLabel(holder.role)+' • '+carriedOf(holder)+' u. détenues • '+holdingRefs(holder)+' réf.</div></div>'+svg('back',16,'var(--faint)')+'</div>';
+ h+='<div class="sm semi mb8">Quantité par appui</div><div class="seg mb12">'+[1,5,10].map(function(n){return '<button class="'+(step===n?'on':'')+'" onclick="ZKA.setAssignStep('+n+')">±'+n+'</button>';}).join('')+'</div>';
+ h+='<div class="chips mb8">'+cats.map(function(c){return '<button class="chip '+(S.assign.cat===c?'on':'')+'" onclick="ZKA.setAssignCat(\''+esc(c)+'\')">'+esc(c)+'</button>';}).join('')+'</div>';
+ h+='<div class="search mb12">'+svg('search',18,'var(--faint)')+'<input id="assignSearch" value="'+esc(S.assign.q||'')+'" placeholder="Rechercher un produit…" oninput="ZKA.onSearch(\'assignSearch\',this.value)"></div>';
+ if(!filt.length)h+=empty('cube','Aucun produit','Rien ne correspond.');
+ else h+='<div class="list mb16">'+filt.map(function(p){var avail=src.qty(p.id),held=heldQty(holder,p.id);
+   var minus='<button onclick="ZKA.assign(\''+hid+'\',\''+p.id+'\',-'+step+')" '+(held<=0?'disabled':'')+' style="width:34px;height:34px;border-radius:50%;background:'+(held<=0?'var(--sunken)':'var(--alt)')+';display:grid;place-items:center">'+svg('back',16,held<=0?'var(--faint)':'currentColor')+'</button>';
+   var plus='<button onclick="ZKA.assign(\''+hid+'\',\''+p.id+'\','+step+')" '+(avail<=0?'disabled':'')+' style="width:34px;height:34px;border-radius:50%;background:'+(avail<=0?'var(--sunken)':'var(--violet)')+';display:grid;place-items:center">'+svg('plus',16,avail<=0?'var(--faint)':'#fff')+'</button>';
+   return '<div class="lrow">'+avatar(p.name,p.emoji,40)+'<div class="grow"><div class="semi ell">'+esc(p.name)+'</div><div class="cap">'+src.label+' : '+avail+' • détenu : '+held+'</div></div><div class="row gap8">'+minus+'<div class="semi" style="min-width:22px;text-align:center">'+held+'</div>'+plus+'</div></div>';}).join('')+'</div>';
+ var mv=S.movements.filter(function(m){return m.holderId===hid;}).slice(0,6);
+ if(mv.length){h+='<div class="h3 mb8">Derniers mouvements</div><div class="list">'+mv.map(function(m){var p=prodById(m.pid),inn=m.qty>0;return '<div class="lrow"><div class="ico" style="width:34px;height:34px;background:'+(inn?'var(--successS)':'var(--warnS)')+'">'+svg(inn?'down':'up',16,inn?'var(--success)':'var(--warn)')+'</div><div class="grow"><div class="sm semi" style="color:var(--text)">'+(inn?'+':'')+m.qty+' '+esc((p||{name:'?'}).name)+'</div><div class="cap">'+rel(m.at)+' • par '+esc((acct(m.byId)||{name:'—'}).name.split(' ')[0])+'</div></div></div>';}).join('')+'</div>';}
+ return h+'</div>';
+}
+
+/* ----- Stock détenu par un membre ----- */
+function viewHoldings(id){var a=id?acct(id):S.user;if(!a)return backHeader('Stock')+empty('cube','Introuvable','');
+ var self=a.id===S.user.id,list=holdingList(a),lows=holdingLows(a),manage=canAssignTo(a.id);
+ var h=backHeader(self?'Mon stock terrain':a.name)+'<div class="pad" style="padding-top:0">';
+ h+='<div class="card p14 center mb16" style="display:flex;flex-direction:column;align-items:center;gap:6px">'+avatar(a.name,a.emoji,72)+'<div class="h2 mt8">'+esc(a.name)+'</div>'+tbadge(roleLabel(a.role),a.role==='responsable'?'primary':'info',true)+'</div>';
+ h+='<div class="card p14 row mb16">'+miniStat('Unités',carriedOf(a))+vbar()+miniStat('Références',list.length)+vbar()+miniStat('Valeur',compact(holdingValue(a)))+vbar()+miniStat('Faibles',lows,lows?'var(--warn)':null)+'</div>';
+ if(manage)h+='<button class="btn btn-primary full mb16" onclick="ZKA.go(\'assign\',\''+a.id+'\')">'+svg('cube',18,'#fff')+' Attribuer / Retirer du stock</button>';
+ if(a.role==='responsable'){var team=commercialsOf(a.id);if(team.length)h+='<div class="card p14 mb16"><div class="cap mb8" style="text-transform:uppercase;letter-spacing:.5px;font-weight:700">Stock de son équipe</div>'+team.map(function(c){var cc=carriedOf(c),low=cc<=COM_LOW;return '<div class="row between" style="padding:8px 0;border-top:1px solid var(--border)" onclick="ZKA.go(\'holdings\',\''+c.id+'\')"><div class="row gap8">'+avatar(c.name,c.emoji,30)+'<div class="sm semi" style="color:var(--text)">'+esc(c.name.split(' ')[0])+'</div>'+(low?tbadge('faible','danger'):'')+'</div><div class="row gap8"><div class="semi" style="'+(low?'color:var(--danger)':'')+'">'+cc+' u.</div>'+svg('back',15,'var(--faint)')+'</div></div>';}).join('')+'</div>';}
+ h+='<div class="h3 mb12">'+(self?'Ce que je détiens':'Produits détenus')+'</div>';
+ if(!list.length)h+=empty('cube','Aucun stock',self?'Rien ne vous a été attribué.':'Aucun produit attribué à ce membre.');
+ else h+='<div class="list">'+list.map(function(x){return heldRow(x.p,x.qty);}).join('')+'</div>';
+ return h+'</div>';
+}
+
 function viewProduitNew(){var f=S.pform;var h=backHeader('Nouveau produit')+'<div class="pad">';
  h+='<div class="sm semi mb8">Icône</div><div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:14px">'+['📦','🥤','🍚','🛢️','🧼','☕','🥛','🔌','🎧','👕','🧢','🍪','🍯'].map(function(e){return '<button onclick="ZKA.pf(\'emoji\',\''+e+'\')" style="width:46px;height:46px;border-radius:14px;font-size:22px;border:1.5px solid '+(f.emoji===e?'var(--violet)':'var(--border)')+';background:'+(f.emoji===e?'var(--primS)':'var(--surface)')+'">'+e+'</button>';}).join('')+'</div>';
  h+=field('Nom du produit','pname',f.name,'Ex. Miel')+field('Catégorie','pcat',f.cat,'Ex. Alimentation')+'<div class="row gap12">'+field('Prix de vente','pprice',f.price,'0',1,1)+field('Coût d\'achat','pcost',f.cost,'0',1,1)+'</div><div class="row gap12">'+field('Stock initial','pstock',f.stock,'0',1,1)+field('Seuil d\'alerte','preorder',f.reorder,'5',1,1)+'</div>'+field('Unité','punit',f.unit,'pièce');
@@ -485,15 +617,15 @@ function viewProduitNew(){var f=S.pform;var h=backHeader('Nouveau produit')+'<di
 function field(label,id,val,ph,num,inline){return '<div style="'+(inline?'flex:1;':'')+'margin-bottom:14px"><div class="sm semi mb8">'+label+'</div><div class="field"><input id="'+id+'" value="'+esc(val==null?'':val)+'" placeholder="'+ph+'"'+(num?' inputmode="decimal"':'')+' oninput="ZKA.setField(\''+id+'\',this.value)"></div></div>';}
 
 /* ----- Nouvelle vente ----- */
-function viewNouvelleVente(){var q=(S.venteFormQ||'').toLowerCase();var prods=S.products.filter(function(p){return !q||(p.name+' '+p.cat).toLowerCase().indexOf(q)>=0;});
+function viewNouvelleVente(){var q=(S.venteFormQ||'').toLowerCase();var anyHeld=carriedOf(S.user)>0;var prods=S.products.filter(function(p){return heldQty(S.user,p.id)>0;}).filter(function(p){return !q||(p.name+' '+p.cat).toLowerCase().indexOf(q)>=0;});
  var items=[];Object.keys(S.cart).forEach(function(id){var p=prodById(id);if(p)items.push({p:p,qty:S.cart[id]});});
  var total=items.reduce(function(s,x){return s+x.qty*x.p.price;},0),count=items.reduce(function(s,x){return s+x.qty;},0);
  var h='<div style="display:flex;flex-direction:column;height:100%">';
  h+='<div class="hdr" style="border-bottom:1px solid var(--border)"><button class="back" onclick="ZKA.back()">'+svg('back',20)+'</button><div class="h3 grow">Nouvelle vente</div><button class="sm semi" style="color:var(--violet)" onclick="ZKA.back()">Fermer</button></div>';
  h+='<div style="flex:1;overflow-y:auto" class="pad">';
- h+='<div class="sm semi mb8">Produits</div><div class="search mb12">'+svg('search',18,'var(--faint)')+'<input id="vformSearch" value="'+esc(S.venteFormQ||'')+'" placeholder="Rechercher un produit…" oninput="ZKA.onSearch(\'venteFormQ\',this.value)"></div>';
- if(!prods.length)h+='<div class="card p14 mb16">'+empty('cube','Aucun produit','Rien ne correspond.')+'</div>';
- else h+='<div class="list mb16">'+prods.map(function(p){var qty=S.cart[p.id]||0,atMax=qty>=p.stock;var ctrl=p.stock===0?tbadge('Rupture','danger'):qty===0?('<button onclick="ZKA.cart(\''+p.id+'\',1)" style="width:38px;height:38px;border-radius:50%;background:var(--primS);display:grid;place-items:center">'+svg('plus',20,'var(--violet)')+'</button>'):('<div class="row gap8"><button onclick="ZKA.cart(\''+p.id+'\',-1)" style="width:34px;height:34px;border-radius:50%;background:var(--alt);display:grid;place-items:center">'+svg('back',16)+'</button><div class="semi" style="min-width:22px;text-align:center">'+qty+'</div><button onclick="ZKA.cart(\''+p.id+'\',1)" '+(atMax?'disabled':'')+' style="width:34px;height:34px;border-radius:50%;background:'+(atMax?'var(--sunken)':'var(--violet)')+';display:grid;place-items:center">'+svg('plus',16,atMax?'var(--faint)':'#fff')+'</button></div>');return '<div class="lrow">'+avatar(p.name,p.emoji,40)+'<div class="grow"><div class="semi ell">'+esc(p.name)+'</div><div class="cap">'+money(p.price)+' • '+p.stock+' '+p.unit+'</div></div>'+ctrl+'</div>';}).join('')+'</div>';
+ h+='<div class="sm semi mb8">Mes produits en stock</div><div class="search mb12">'+svg('search',18,'var(--faint)')+'<input id="vformSearch" value="'+esc(S.venteFormQ||'')+'" placeholder="Rechercher un produit…" oninput="ZKA.onSearch(\'venteFormQ\',this.value)"></div>';
+ if(!prods.length)h+='<div class="card p14 mb16">'+empty('cube',anyHeld?'Aucun résultat':'Aucun stock à vendre',anyHeld?'Rien ne correspond à votre recherche.':'Votre responsable ne vous a pas encore attribué de stock.')+'</div>';
+ else h+='<div class="list mb16">'+prods.map(function(p){var hold=heldQty(S.user,p.id),qty=S.cart[p.id]||0,atMax=qty>=hold;var ctrl=qty===0?('<button onclick="ZKA.cart(\''+p.id+'\',1)" style="width:38px;height:38px;border-radius:50%;background:var(--primS);display:grid;place-items:center">'+svg('plus',20,'var(--violet)')+'</button>'):('<div class="row gap8"><button onclick="ZKA.cart(\''+p.id+'\',-1)" style="width:34px;height:34px;border-radius:50%;background:var(--alt);display:grid;place-items:center">'+svg('back',16)+'</button><div class="semi" style="min-width:22px;text-align:center">'+qty+'</div><button onclick="ZKA.cart(\''+p.id+'\',1)" '+(atMax?'disabled':'')+' style="width:34px;height:34px;border-radius:50%;background:'+(atMax?'var(--sunken)':'var(--violet)')+';display:grid;place-items:center">'+svg('plus',16,atMax?'var(--faint)':'#fff')+'</button></div>');return '<div class="lrow">'+avatar(p.name,p.emoji,40)+'<div class="grow"><div class="semi ell">'+esc(p.name)+'</div><div class="cap">'+money(p.price)+' • j\'en ai '+hold+' '+p.unit+'</div></div>'+ctrl+'</div>';}).join('')+'</div>';
  h+='<div class="sm semi mb8">Moyen de paiement</div><div class="seg mb16">'+['espèces','mobile','carte','crédit'].map(function(m){return '<button class="'+(S.vPay===m?'on':'')+'" onclick="ZKA.setPay(\''+m+'\')">'+cap(m)+'</button>';}).join('')+'</div>';
  h+='<div class="sm semi mb8">Client (optionnel)</div><div class="field mb16">'+svg('person',18,'var(--faint)')+'<input id="vcust" value="'+esc(S.vCust)+'" placeholder="Nom du client" oninput="ZKA.setCust(this.value)"></div>';
  h+='</div>';
@@ -537,8 +669,8 @@ function viewCommercial(id){var c=acct(id);if(!c)return backHeader('Profil')+emp
  var h=backHeader(c.name,'<button class="back" onclick="ZKA.go(\'badge\',\''+c.id+'\')">'+svg('qr',20)+'</button>')+'<div class="pad" style="padding-top:0">';
  h+='<div class="card p14 center mb16" style="display:flex;flex-direction:column;align-items:center;gap:6px">'+avatar(c.name,c.emoji,80)+'<div class="h2 mt8">'+esc(c.name)+'</div><div class="sec">Commercial'+(mgr?' • équipe '+esc(mgr.name):'')+'</div>'+tbadge(statusMeta(c.status)[0],statusMeta(c.status)[1],true)+'<button class="btn btn-primary full mt12" onclick="ZKA.contact(\''+c.id+'\')">'+svg('chat',18,'#fff')+' Envoyer un message</button></div>';
  h+='<div class="h3 mb12">Performance (30 jours)</div><div class="row gap12 mb12">'+statCard('cart','primary','Ventes',rec.length)+statCard('wallet','success','Chiffre',compact(rev))+'</div><div class="row gap12 mb16">'+statCard('gift','accent','Commission',compact(comm))+statCard('tag','info','Panier moyen',compact(rec.length?Math.round(rev/rec.length):0))+'</div>';
- var cc=carriedOf(c),clow=cc<=COM_LOW;
- h+='<div class="card p14 mb16" style="'+(clow?'background:var(--dangerS);border-color:transparent':'')+'"><div class="row between"><div class="row gap12">'+svg('cube',22,clow?'var(--danger)':'var(--violet)')+'<div><div class="semi" style="'+(clow?'color:var(--danger)':'')+'">Stock terrain'+(clow?' faible ⚠':'')+'</div><div class="cap">unités qu\'il reste à vendre</div></div></div><div class="row gap10" style="align-items:center"><div class="h1" style="'+(clow?'color:var(--danger)':'')+'">'+cc+'</div>'+((role()==='boss'||role()==='responsable')?'<button class="fab" style="background:var(--success)" onclick="ZKA.replenish(\''+c.id+'\',10)">'+svg('plus',20,'#fff')+'</button>':'')+'</div></div></div>';
+ var cc=carriedOf(c),clow=cc<=COM_LOW,crefs=holdingRefs(c),canA=canAssignTo(c.id);
+ h+='<div class="card p14 mb16" style="'+(clow?'background:var(--dangerS);border-color:transparent':'')+'"><div class="row between"><div class="row gap12" style="flex:1;min-width:0" onclick="ZKA.go(\'holdings\',\''+c.id+'\')">'+svg('cube',22,clow?'var(--danger)':'var(--violet)')+'<div><div class="semi" style="'+(clow?'color:var(--danger)':'')+'">Stock terrain'+(clow?' faible ⚠':'')+'</div><div class="cap">'+crefs+' produit(s) • voir le détail</div></div></div><div class="row gap10" style="align-items:center"><div class="h1" style="'+(clow?'color:var(--danger)':'')+'">'+cc+'</div>'+(canA?'<button class="fab" style="background:var(--success)" onclick="ZKA.go(\'assign\',\''+c.id+'\')">'+svg('plus',20,'#fff')+'</button>':'')+'</div></div></div>';
  if(rec.length){h+='<div class="h3 mb12">Ventes récentes</div><div class="list">'+my.slice(0,5).map(function(s){return '<div class="lrow" onclick="ZKA.go(\'recu\',\''+s.id+'\')"><div class="ico" style="width:38px;height:38px;background:var(--successS)">'+svg('receipt',18,'var(--success)')+'</div><div class="grow"><div class="semi">'+esc(s.customer||'Client comptant')+'</div><div class="cap">'+s.ref+' • '+fmtTime(s.createdAt)+'</div></div><div class="semi" style="color:var(--success)">'+money(s.total)+'</div></div>';}).join('')+'</div>';}
  return h+'</div>';
 }
@@ -546,8 +678,11 @@ function viewResponsable(id){var rp=acct(id);if(!rp)return backHeader('Profil')+
  var h=backHeader(rp.name,'<button class="back" onclick="ZKA.go(\'badge\',\''+rp.id+'\')">'+svg('qr',20)+'</button>')+'<div class="pad" style="padding-top:0">';
  h+='<div class="card p14 center mb16" style="display:flex;flex-direction:column;align-items:center;gap:6px">'+avatar(rp.name,rp.emoji,80)+'<div class="h2 mt8">'+esc(rp.name)+'</div><div class="sec">Responsable commercial</div>'+tbadge(statusMeta(rp.status)[0],statusMeta(rp.status)[1],true)+'<button class="btn btn-primary full mt12" onclick="ZKA.contact(\''+rp.id+'\')">'+svg('chat',18,'#fff')+' Envoyer un message</button></div>';
  h+='<div class="row gap12 mb16">'+statCard('users','primary','Commerciaux',team.length)+statCard('wallet','success','Chiffre (30j)',compact(rev))+'</div>';
+ var ownRes=carriedOf(rp),ownRefs=holdingRefs(rp);
+ h+='<div class="card p14 mb12" onclick="ZKA.go(\'holdings\',\''+rp.id+'\')"><div class="row between"><div class="row gap12">'+svg('cube',22,'var(--violet)')+'<div><div class="semi">Réserve du responsable</div><div class="cap">'+ownRefs+' produit(s) • voir le détail</div></div></div><div class="row gap8" style="align-items:center"><div class="h2">'+ownRes+' u.</div>'+svg('back',16,'var(--faint)')+'</div></div></div>';
+ if(canAssignTo(rp.id))h+='<button class="btn btn-primary full mb16" onclick="ZKA.go(\'assign\',\''+rp.id+'\')">'+svg('cube',18,'#fff')+' Attribuer du stock à '+esc(rp.name.split(' ')[0])+'</button>';
  var tstock=respStock(id),rlow=tstock<=RESP_LOW;
- h+='<div class="card p14 mb16" style="'+(rlow?'background:var(--dangerS);border-color:transparent':'')+'"><div class="row between mb12"><div class="row gap12">'+svg('cube',22,rlow?'var(--danger)':'var(--violet)')+'<div class="semi" style="'+(rlow?'color:var(--danger)':'')+'">Stock terrain'+(rlow?' — faible ⚠':'')+'</div></div><div class="h2" style="'+(rlow?'color:var(--danger)':'')+'">'+tstock+' u.</div></div>'+team.map(function(c){var cc=carriedOf(c),low=cc<=COM_LOW;return '<div class="row between" style="padding:8px 0;border-top:1px solid var(--border)"><div class="row gap8">'+avatar(c.name,c.emoji,30)+'<div class="sm semi" style="color:var(--text)">'+esc(c.name.split(' ')[0])+'</div>'+(low?tbadge('faible','danger'):'')+'</div><div class="row gap8"><div class="semi" style="'+(low?'color:var(--danger)':'')+'">'+cc+' u.</div><button class="back" style="width:30px;height:30px;background:var(--successS)" onclick="ZKA.replenish(\''+c.id+'\',10)">'+svg('plus',15,'var(--success)')+'</button></div></div>';}).join('')+'</div>';
+ h+='<div class="card p14 mb16" style="'+(rlow?'background:var(--dangerS);border-color:transparent':'')+'"><div class="row between mb12"><div class="row gap12">'+svg('cube',22,rlow?'var(--danger)':'var(--violet)')+'<div class="semi" style="'+(rlow?'color:var(--danger)':'')+'">Stock détenu par l\'équipe'+(rlow?' — faible ⚠':'')+'</div></div><div class="h2" style="'+(rlow?'color:var(--danger)':'')+'">'+tstock+' u.</div></div>'+team.map(function(c){var cc=carriedOf(c),low=cc<=COM_LOW;return '<div class="row between" style="padding:8px 0;border-top:1px solid var(--border)"><div class="row gap8" style="flex:1;min-width:0" onclick="ZKA.go(\'holdings\',\''+c.id+'\')">'+avatar(c.name,c.emoji,30)+'<div class="sm semi" style="color:var(--text)">'+esc(c.name.split(' ')[0])+'</div>'+(low?tbadge('faible','danger'):'')+'</div><div class="row gap8"><div class="semi" style="'+(low?'color:var(--danger)':'')+'">'+cc+' u.</div>'+(canAssignTo(c.id)?'<button class="back" style="width:30px;height:30px;background:var(--successS)" onclick="ZKA.go(\'assign\',\''+c.id+'\')">'+svg('plus',15,'var(--success)')+'</button>':'')+'</div></div>';}).join('')+'</div>';
  if(top&&top.rev>0)h+='<div class="card p14 mb16" style="background:var(--goldS);border-color:transparent"><div class="row gap12">'+avatar(top.c.name,top.c.emoji,40)+'<div class="grow"><div class="cap" style="color:var(--warn)">🏆 MEILLEUR VENDEUR</div><div class="semi">'+esc(top.c.name)+'</div></div><div class="semi" style="color:var(--warn)">'+compact(top.rev)+'</div></div></div>';
  h+='<div class="h3 mb12">Son équipe</div><div class="list">'+rank.map(function(x,i){return '<div class="lrow" onclick="ZKA.go(\'commercial\',\''+x.c.id+'\')"><div style="width:18px;text-align:center;font-weight:700;color:'+(i===0?'var(--gold)':'var(--faint)')+'">'+(i+1)+'</div>'+avatar(x.c.name,x.c.emoji,42)+'<div class="grow"><div class="semi ell">'+esc(x.c.name)+'</div><div class="cap">'+x.count+' ventes • '+compact(x.rev)+'</div></div>'+tbadge(statusMeta(x.c.status)[0],statusMeta(x.c.status)[1])+'</div>';}).join('')+'</div>';
  return h+'</div>';
@@ -627,7 +762,7 @@ function viewParametres(){var u=S.user;var h=backHeader('Réglages')+'<div class
  h+='<div class="h3 mb12">Préférences</div><div class="card p14 mb16"><div class="row between"><div class="row gap12">'+svg('moon',20,'var(--t2)')+'<div class="t">Thème sombre</div></div><button class="switch '+(theme()==='dark'?'on':'')+'" onclick="ZKA.toggleTheme()"><div class="knob"></div></button></div></div>';
  if(isSuper())h+='<button class="btn btn-sec full mb16" onclick="ZKA.reset()">'+svg('refresh',18)+' Réinitialiser la démonstration</button>';
  h+='<button class="btn btn-out full" onclick="ZKA.logout()">'+svg('logout',18)+' Se déconnecter</button>';
- h+='<div class="center mt16"><div class="cap">ZKA • Gestion de commerce</div><div class="cap mt4">Démo interactive · v2 rôles</div></div>';
+ h+='<div class="center mt16"><div class="cap">ZKA • Gestion de commerce</div><div class="cap mt4">Démo interactive · stock par produit &amp; rôles</div></div>';
  return h+'</div>';
 }
 
@@ -641,14 +776,18 @@ window.ZKA={
  toggleDemo:function(){S.showDemo=!S.showDemo;render();},
  logout:function(){ZKA.ask('Voulez-vous vous déconnecter de ZKA ?','Se déconnecter',function(){S.user=null;S.route={name:'accueil'};render();});},
  setTab:setTab,go:go,back:back,toggleTheme:toggleTheme,toast:toast,
- onSearch:function(key,val){var map={venteSearch:'venteQ',stockSearch:'stockQ',equipeSearch:'equipeQ',msgSearch:'msgQ',venteFormQ:'venteFormQ',loginId:'loginId',loginPin:'loginPin'};S[map[key]||key]=val;render();},
+ onSearch:function(key,val){if(key==='assignSearch'){S.assign.q=val;render();return;}var map={venteSearch:'venteQ',stockSearch:'stockQ',equipeSearch:'equipeQ',msgSearch:'msgQ',venteFormQ:'venteFormQ',loginId:'loginId',loginPin:'loginPin'};S[map[key]||key]=val;render();},
  setRange:function(r){S.range=r;render();},setSalesPeriod:function(p){S.salesPeriod=p;render();},setStockCat:function(c){S.stockCat=c;render();},
  newSale:function(){if(role()!=='commercial'){toast('Seuls les commerciaux enregistrent des ventes');return;}S.cart={};S.vCust='';S.venteFormQ='';S.vPay='espèces';go('vente');},
  setPay:function(m){S.vPay=m;render();},setCust:function(v){S.vCust=v;render();},
- cart:function(id,d){var p=prodById(id);var max=p?p.stock:0;var next=Math.min(max,Math.max(0,(S.cart[id]||0)+d));if(next===0)delete S.cart[id];else S.cart[id]=next;render();},
- submitSale:function(){var items=[];Object.keys(S.cart).forEach(function(id){var p=prodById(id);if(p)items.push({productId:id,name:p.name,quantity:S.cart[id],unitPrice:p.price});});if(!items.length){toast('Ajoutez au moins un produit');return;}var total=items.reduce(function(s,x){return s+x.quantity*x.unitPrice;},0);var units=items.reduce(function(s,x){return s+x.quantity;},0);items.forEach(function(it){var p=prodById(it.productId);if(p)p.stock=Math.max(0,p.stock-it.quantity);});S.user.carried=Math.max(0,carriedOf(S.user)-units);var sale={id:'s'+Date.now(),ref:'ZKA-'+(SEQ++),sellerId:S.user.id,items:items,total:total,pay:S.vPay,customer:S.vCust||null,createdAt:new Date().toISOString()};S.sales.unshift(sale);S.cart={};S.vCust='';S.prev=[{name:'ventes'}];S.route={name:'recu',id:sale.id};render();scrollTop();toast('Vente enregistrée : '+money(total));},
+ cart:function(id,d){var max=heldQty(S.user,id);var next=Math.min(max,Math.max(0,(S.cart[id]||0)+d));if(next===0)delete S.cart[id];else S.cart[id]=next;render();},
+ submitSale:function(){var items=[];Object.keys(S.cart).forEach(function(id){var q=S.cart[id],p=prodById(id);if(p&&q>0)items.push({productId:id,name:p.name,quantity:q,unitPrice:p.price});});if(!items.length){toast('Ajoutez au moins un produit');return;}var total=items.reduce(function(s,x){return s+x.quantity*x.unitPrice;},0);var hh=holdingsOf(S.user);items.forEach(function(it){hh[it.productId]=Math.max(0,(hh[it.productId]||0)-it.quantity);if(hh[it.productId]<=0)delete hh[it.productId];});var sale={id:'s'+Date.now(),ref:'ZKA-'+(SEQ++),sellerId:S.user.id,items:items,total:total,pay:S.vPay,customer:S.vCust||null,createdAt:new Date().toISOString()};S.sales.unshift(sale);S.cart={};S.vCust='';S.prev=[{name:'ventes'}];S.route={name:'recu',id:sale.id};render();scrollTop();toast('Vente enregistrée : '+money(total));},
  adjust:function(id,d){var p=prodById(id);if(p){p.stock=Math.max(0,p.stock+d);render();}},
- replenish:function(id,n){var a=acct(id);if(a){a.carried=carriedOf(a)+n;toast(a.name.split(' ')[0]+' réapprovisionné (+'+n+' u.)');render();}},
+ setStockTab:function(t){S.stockTab=t;S.stockQ='';render();},
+ setAssignHolder:function(id){S.assign.holderId=id;S.assign.q='';render();},
+ setAssignCat:function(c){S.assign.cat=c;render();},
+ setAssignStep:function(n){S.assign.step=n;render();},
+ assign:function(holderId,pid,delta){var moved=assignStock(holderId,pid,delta);if(!moved){toast(delta>0?(role()==='boss'?'Entrepôt insuffisant':'Réserve insuffisante'):'Rien à reprendre');return;}render();},
  contact:function(id){var found=null;S.conversations.forEach(function(c){if(c.kind==='direct'&&c.parts.indexOf(S.user.id)>=0&&c.parts.indexOf(id)>=0)found=c;});if(!found){found={id:'c'+Date.now(),kind:'direct',parts:[S.user.id,id]};S.conversations.push(found);}go('chat',found.id);},
  setDraft:function(v){S.draft=v;},
  send:function(cid){var t=S.draft.trim();if(!t)return;S.messages.push({id:'m'+Date.now(),conv:cid,senderId:S.user.id,text:t,createdAt:new Date().toISOString(),read:true});S.draft='';render();},
@@ -669,7 +808,9 @@ window.ZKA={
  modalCancel:function(){S.modal=null;render();}
 };
 S.pform={emoji:'📦'};
-var _go=go;window.ZKA.go=function(name,id){if(name==='produitNew'){S.pform={emoji:'📦'};S._f={};}if(name==='compteNew'){S.aform={role:'commercial',mgr:responsables()[0].id};S._f={};}_go(name,id);};
+var _go=go;window.ZKA.go=function(name,id){if(name==='produitNew'){S.pform={emoji:'📦'};S._f={};}if(name==='compteNew'){S.aform={role:'commercial',mgr:responsables()[0].id};S._f={};}if(name==='assign'){S.assign={holderId:id||S.assign.holderId,q:'',cat:'Tous',step:S.assign.step||1};}_go(name,id);};
 render();
 })();
 </script>
+</body>
+</html>

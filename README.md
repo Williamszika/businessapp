@@ -5,6 +5,8 @@ Application mobile **ZKA** pour piloter votre commerce depuis un téléphone : c
 > Construite avec **Expo (React Native + TypeScript)** : une seule base de code, deux plateformes.
 
 > 🕹️ **Aperçu interactif** : ouvrez [`demo/zka-demo.html`](./demo/zka-demo.html) dans un navigateur pour manipuler une version jouable de l'application (connexion, ventes, messagerie, stock, revenus) — sans rien installer. C'est une démonstration ; l'application réelle est le projet Expo décrit ci-dessous.
+>
+> 📦 **Gestion des stocks par rôle** (dans la démo) : la direction gère l'**entrepôt central** et attribue, via un **formulaire** (« Attribuer du stock »), quels produits et quelles quantités reviennent à chaque **responsable** et **commercial** ; chacun voit alors le détail des stocks qu'il détient (« Mon stock terrain »), les responsables répartissent leur réserve à leur équipe, les commerciaux vendent uniquement ce qu'ils possèdent, et la direction visualise la répartition chez tout le monde et peut ajouter ou reprendre des produits. Chaque mouvement est journalisé.
 
 ---
 

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024" role="img" aria-label="ZiKA Group monogram">
+  <defs>
+    <linearGradient id="zkFace" x1="18" y1="14" x2="82" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF7D9"/><stop offset="0.16" stop-color="#F4DE9C"/>
+      <stop offset="0.40" stop-color="#E9C86A"/><stop offset="0.60" stop-color="#CDA04C"/>
+      <stop offset="0.80" stop-color="#B8862F"/><stop offset="1" stop-color="#8A5F20"/>
+    </linearGradient>
+    <linearGradient id="zkGloss" x1="0" y1="12" x2="0" y2="88" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.66"/>
+      <stop offset="0.15" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="0.32" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.72" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#3A2708" stop-opacity="0.30"/>
+    </linearGradient>
+    <linearGradient id="zkRim" x1="18" y1="16" x2="72" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF3C8"/><stop offset="1" stop-color="#C9A04B"/>
+    </linearGradient>
+    <clipPath id="zkClip"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79"/><polygon points="56,29 80,29 46,71 22,71"/></clipPath>
+  </defs><g><g transform="translate(6.000,8.000)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#4A3212"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#4A3212"/><polygon points="56,29 80,29 46,71 22,71" fill="#4A3212"/></g>
+<g transform="translate(5.667,7.556)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#4F3613"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#4F3613"/><polygon points="56,29 80,29 46,71 22,71" fill="#4F3613"/></g>
+<g transform="translate(5.333,7.111)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#543915"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#543915"/><polygon points="56,29 80,29 46,71 22,71" fill="#543915"/></g>
+<g transform="translate(5.000,6.667)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#583D16"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#583D16"/><polygon points="56,29 80,29 46,71 22,71" fill="#583D16"/></g>
+<g transform="translate(4.667,6.222)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#5D4118"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#5D4118"/><polygon points="56,29 80,29 46,71 22,71" fill="#5D4118"/></g>
+<g transform="translate(4.333,5.778)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#624419"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#624419"/><polygon points="56,29 80,29 46,71 22,71" fill="#624419"/></g>
+<g transform="translate(4.000,5.333)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#67481A"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#67481A"/><polygon points="56,29 80,29 46,71 22,71" fill="#67481A"/></g>
+<g transform="translate(3.667,4.889)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#6C4C1C"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#6C4C1C"/><polygon points="56,29 80,29 46,71 22,71" fill="#6C4C1C"/></g>
+<g transform="translate(3.333,4.444)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#714F1D"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#714F1D"/><polygon points="56,29 80,29 46,71 22,71" fill="#714F1D"/></g>
+<g transform="translate(3.000,4.000)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#75531F"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#75531F"/><polygon points="56,29 80,29 46,71 22,71" fill="#75531F"/></g>
+<g transform="translate(2.667,3.556)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#7A5620"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#7A5620"/><polygon points="56,29 80,29 46,71 22,71" fill="#7A5620"/></g>
+<g transform="translate(2.333,3.111)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#7F5A22"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#7F5A22"/><polygon points="56,29 80,29 46,71 22,71" fill="#7F5A22"/></g>
+<g transform="translate(2.000,2.667)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#845E23"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#845E23"/><polygon points="56,29 80,29 46,71 22,71" fill="#845E23"/></g>
+<g transform="translate(1.667,2.222)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#896124"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#896124"/><polygon points="56,29 80,29 46,71 22,71" fill="#896124"/></g>
+<g transform="translate(1.333,1.778)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#8E6526"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#8E6526"/><polygon points="56,29 80,29 46,71 22,71" fill="#8E6526"/></g>
+<g transform="translate(1.000,1.333)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#926927"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#926927"/><polygon points="56,29 80,29 46,71 22,71" fill="#926927"/></g>
+<g transform="translate(0.667,0.889)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#976C29"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#976C29"/><polygon points="56,29 80,29 46,71 22,71" fill="#976C29"/></g>
+<g transform="translate(0.333,0.444)"><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#9C702A"/><polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#9C702A"/><polygon points="56,29 80,29 46,71 22,71" fill="#9C702A"/></g><polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="#5C3E16"/>
+<polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="#5C3E16"/>
+<polygon points="56,29 80,29 46,71 22,71" fill="#5C3E16"/>
+<polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="url(#zkFace)"/>
+<polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="url(#zkFace)"/>
+<polygon points="56,29 80,29 46,71 22,71" fill="url(#zkFace)"/>
+<g clip-path="url(#zkClip)"><rect x="0" y="0" width="100" height="100" fill="url(#zkGloss)"/></g>
+<polygon points="26,17 76,17 80,21 80,29 22,29 22,21" fill="none" stroke="url(#zkRim)" stroke-width="0.7" stroke-linejoin="round" opacity="0.9"/>
+<polygon points="26,83 76,83 80,79 80,71 22,71 22,79" fill="none" stroke="url(#zkRim)" stroke-width="0.7" stroke-linejoin="round" opacity="0.9"/>
+<polygon points="56,29 80,29 46,71 22,71" fill="none" stroke="url(#zkRim)" stroke-width="0.7" stroke-linejoin="round" opacity="0.9"/></g></svg>
